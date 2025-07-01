@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -90,13 +90,31 @@ export default function VotePage({ server, onOpenAuth }: VotePageProps) {
     return Array.from({ length: 5 }, () => chars[Math.floor(Math.random() * chars.length)]).join('')
   }
 
+  const checkVoteStatus = useCallback(async () => {
+    try {
+      const response = await fetch(`/api/servers/${server.id}/vote-status`)
+      if (response.ok) {
+        const data = await response.json()
+        setVoteStatus({
+          canVote: data.userStatus.canVote,
+          message: data.userStatus.canVote ? 'Puedes votar por este servidor' : 'Ya has votado',
+          timeLeft: data.userStatus.timeLeft,
+          totalVotes: data.votes.monthly,
+          hasVoted: data.userStatus.hasVoted
+        })
+      }
+    } catch (error) {
+      console.error('Error al verificar estado de voto:', error)
+    }
+  }, [server.id])
+
   // Verificar estado de votación al cargar
   useEffect(() => {
     checkVoteStatus()
     if (!user) {
       setCaptchaQuestion(generateCaptcha())
     }
-  }, [server.id, user])
+  }, [server.id, user, checkVoteStatus])
 
   // Contador en tiempo real para el tiempo restante
   useEffect(() => {
@@ -124,25 +142,7 @@ export default function VotePage({ server, onOpenAuth }: VotePageProps) {
       
       return () => clearInterval(timer)
     }
-  }, [voteStatus.timeLeft])
-
-  const checkVoteStatus = async () => {
-    try {
-      const response = await fetch(`/api/servers/${server.id}/vote-status`)
-      if (response.ok) {
-        const data = await response.json()
-        setVoteStatus({
-          canVote: data.userStatus.canVote,
-          message: data.userStatus.canVote ? 'Puedes votar por este servidor' : 'Ya has votado',
-          timeLeft: data.userStatus.timeLeft,
-          totalVotes: data.votes.monthly,
-          hasVoted: data.userStatus.hasVoted
-        })
-      }
-    } catch (error) {
-      console.error('Error al verificar estado de voto:', error)
-    }
-  }
+  }, [voteStatus.timeLeft, checkVoteStatus])
 
   const handleVote = async () => {
     setLoading(true)
@@ -349,12 +349,12 @@ export default function VotePage({ server, onOpenAuth }: VotePageProps) {
                   <TrendingUp className="mr-3 h-7 w-7 text-cyan-400" />
                   Votar por este servidor
                 </CardTitle>
-                <CardDescription className="text-slate-300">
+                <div className="text-slate-300 text-sm text-muted-foreground">
                   <div className="flex items-center justify-center space-x-2">
                     <Users className="h-4 w-4" />
                     <span>Ayuda a {server.title} a subir en el ranking</span>
                   </div>
-                </CardDescription>
+                </div>
               </CardHeader>
 
               <CardContent className="space-y-6 px-8">
@@ -381,10 +381,10 @@ export default function VotePage({ server, onOpenAuth }: VotePageProps) {
                   <Alert className="bg-yellow-900/20 border-yellow-500/50">
                     <Clock className="h-4 w-4 text-yellow-400" />
                     <AlertDescription className="text-yellow-300 text-center">
-                      <div className="font-semibold">Ya has votado por este servidor</div>
-                      <div className="text-sm">
+                      <span className="font-semibold block">Ya has votado por este servidor</span>
+                      <span className="text-sm block">
                         Podrás votar nuevamente en: <span className="font-mono">{voteStatus.timeLeft.hours}h {voteStatus.timeLeft.minutes}m</span>
-                      </div>
+                      </span>
                     </AlertDescription>
                   </Alert>
                 )}
@@ -425,7 +425,7 @@ export default function VotePage({ server, onOpenAuth }: VotePageProps) {
                         }}
                       >
                         <Shield className="h-4 w-4 text-blue-400" />
-                        <AlertDescription className="text-blue-300">
+                        <div className="text-blue-300 text-sm">
                           <div className="flex flex-col space-y-3">
                             <div className="text-sm text-center">
                               Los usuarios registrados no necesitan captcha
@@ -441,7 +441,7 @@ export default function VotePage({ server, onOpenAuth }: VotePageProps) {
                               Registrarse Ahora
                             </Button>
                           </div>
-                        </AlertDescription>
+                        </div>
                       </Alert>
                     </div>
                   </div>
