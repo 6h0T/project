@@ -46,11 +46,12 @@ interface Server {
     name: string
     slug: string
   }
-  user: {
+  user?: {
     id: number
     nickname: string
+    email?: string
   }
-  _count: {
+  _count?: {
     votes: number
   }
 }
@@ -75,7 +76,7 @@ export default function VotePage({ server, onOpenAuth }: VotePageProps) {
   const [voteStatus, setVoteStatus] = useState<VoteStatus>({
     canVote: true,
     message: '',
-    totalVotes: server._count.votes,
+    totalVotes: server._count?.votes || 0,
     hasVoted: false
   })
   const [loading, setLoading] = useState(false)

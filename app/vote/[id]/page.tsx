@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation'
-import { getServerById } from '@/lib/database'
+import { getServerById, type Server } from '@/lib/database'
 import VotePage from '@/components/VotePage'
 
 async function getServerInfo(serverId: string) {
@@ -23,5 +23,5 @@ export default async function ServerVotePage({
     notFound()
   }
 
-  return <VotePage server={server} />
+  return <VotePage server={server as any} />
 }
