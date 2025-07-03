@@ -1,0 +1,39 @@
+🎮 SV TOP - GameServers Hub
+=====================================
+
+¡Bienvenido a SV TOP! 🚀
+
+¡Hola {{ .Email }}!
+
+Estás a un solo paso de unirte a la mejor comunidad de servidores de juegos.
+
+CONFIRMA TU CUENTA:
+{{ .ConfirmationURL }}
+
+¿Por qué necesitamos confirmar tu email? 🔐
+La confirmación de email nos ayuda a mantener tu cuenta segura y te permite recibir notificaciones importantes sobre tus servidores favoritos.
+
+QUÉ PUEDES HACER EN SV TOP:
+✓ Vota por servidores - Apoya tus servidores favoritos
+✓ Gana créditos - 1000 créditos de bienvenida
+✓ Dashboard personal - Gestiona tus actividades  
+✓ Promociona tu servidor - Crea banners llamativos
+
+PRÓXIMOS PASOS:
+1. Haz clic en el enlace de confirmación
+2. Inicia sesión en tu cuenta
+3. Explora los mejores servidores
+4. ¡Comienza a votar y ganar recompensas!
+
+Si tienes alguna pregunta, no dudes en contactarnos. ¡Estamos aquí para ayudarte! 💪
+
+═══════════════════════════════════════════
+
+Si no solicitaste esta cuenta, puedes ignorar este email de forma segura.
+
+🌐 Sitio Web | 📧 Soporte | 📱 Discord
+
+© {{ .Year }} SV TOP - GameServers Hub
+La mejor plataforma para descubrir servidores de juegos
+
+═══════════════════════════════════════════ 

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -38,6 +39,7 @@ interface AuthModalProps {
 }
 
 export default function AuthModal({ isOpen, onClose, defaultTab = 'login' }: AuthModalProps) {
+  const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -69,8 +71,16 @@ export default function AuthModal({ isOpen, onClose, defaultTab = 'login' }: Aut
       if (error) throw error;
 
       onClose();
+      // Redireccionar al dashboard después del login exitoso
+      router.push('/dashboard');
     } catch (error: any) {
-      setError(error.message || 'Error al iniciar sesión');
+      if (error.message.includes('Invalid login credentials')) {
+        setError('Credenciales inválidas. Verifica tu email y contraseña.');
+      } else if (error.message.includes('Email not confirmed')) {
+        setError('Por favor confirma tu email antes de iniciar sesión.');
+      } else {
+        setError(error.message || 'Error al iniciar sesión');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -280,6 +290,22 @@ export default function AuthModal({ isOpen, onClose, defaultTab = 'login' }: Aut
             </form>
           </TabsContent>
         </Tabs>
+        
+        {/* Enlaces adicionales */}
+        <div className="text-center pt-4 border-t border-slate-700">
+          <p className="text-slate-400 text-sm">
+            ¿Prefieres un registro más completo?{' '}
+            <button
+              onClick={() => {
+                onClose();
+                router.push('/registro');
+              }}
+              className="text-cyan-400 hover:text-cyan-300 font-medium transition-colors duration-200"
+            >
+              Ir a página de registro
+            </button>
+          </p>
+        </div>
       </DialogContent>
     </Dialog>
   );

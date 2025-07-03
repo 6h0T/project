@@ -134,13 +134,20 @@ export default function Navbar() {
                   </DropdownMenuContent>
                 </DropdownMenu>
               ) : (
-                <Button
-                  onClick={() => openAuthModal('login')}
-                  className="bg-gradient-to-r from-cyan-500/80 to-blue-500/80 hover:from-cyan-500 hover:to-blue-500 text-white backdrop-blur-sm border border-white/20 shadow-lg hover:shadow-cyan-500/30 transition-all duration-300"
-                >
-                  <LogIn className="mr-2 h-4 w-4" />
-                  Iniciar Sesión
-                </Button>
+                <div className="flex items-center space-x-3">
+                  <Link 
+                    href="/login"
+                    className="text-slate-300 hover:text-white transition-colors duration-200 text-sm font-medium"
+                  >
+                    Iniciar Sesión
+                  </Link>
+                  <Link 
+                    href="/registro"
+                    className="bg-gradient-to-r from-cyan-500/80 to-blue-500/80 hover:from-cyan-500 hover:to-blue-500 text-white backdrop-blur-sm border border-white/20 shadow-lg hover:shadow-cyan-500/30 transition-all duration-300 px-4 py-2 rounded-lg text-sm font-medium"
+                  >
+                    Registrarse
+                  </Link>
+                </div>
               )}
             </div>
           </div>

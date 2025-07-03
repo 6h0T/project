@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, Mail, Lock, User, Shield, Eye, EyeOff, ArrowLeft } from 'lucide-react';
+import { Loader2, Mail, Lock, User, Shield, Eye, EyeOff, ArrowLeft, Check, X } from 'lucide-react';
 import Link from 'next/link';
 import Script from 'next/script';
 import BotIdClient from '@/components/BotIdClient';
@@ -43,10 +43,62 @@ export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isCaptchaVerified, setIsCaptchaVerified] = useState(false);
+  const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(null);
+  const [checkingUsername, setCheckingUsername] = useState(false);
 
   const form = useForm<RegisterForm>({
     resolver: zodResolver(registerSchema),
   });
+
+  // Función para verificar disponibilidad del username
+  const checkUsernameAvailability = async (username: string) => {
+    if (username.length < 3) {
+      setUsernameAvailable(null);
+      return;
+    }
+
+    setCheckingUsername(true);
+    
+    try {
+      // Usar función RPC para verificar disponibilidad
+      const { data, error } = await supabase
+        .rpc('check_username_available', { username_param: username });
+
+      if (error) {
+        console.error('Error checking username:', error);
+        setUsernameAvailable(null);
+      } else {
+        // data será true si está disponible, false si no
+        setUsernameAvailable(data);
+      }
+    } catch (error) {
+      console.error('Error checking username:', error);
+      setUsernameAvailable(null);
+    } finally {
+      setCheckingUsername(false);
+    }
+  };
+
+  // Effect para verificar username cuando cambie
+  useEffect(() => {
+    const subscription = form.watch((value, { name }) => {
+      if (name === 'username' && value.username) {
+        const username = value.username.trim();
+        if (username && username.length >= 3) {
+          // Debounce la verificación
+          const timeoutId = setTimeout(() => {
+            checkUsernameAvailability(username);
+          }, 500);
+          
+          return () => clearTimeout(timeoutId);
+        } else {
+          setUsernameAvailable(null);
+        }
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [form.watch]);
 
   const handleRegister = async (data: RegisterForm) => {
     setIsLoading(true);
@@ -57,6 +109,11 @@ export default function RegisterPage() {
       // Verificar captcha primero
       if (!isCaptchaVerified) {
         throw new Error('Por favor completa la verificación de captcha');
+      }
+
+      // Verificar que el username esté disponible
+      if (usernameAvailable !== true) {
+        throw new Error('Por favor elige un nombre de usuario válido y disponible');
       }
 
       // Verificar captcha en el servidor
@@ -75,7 +132,7 @@ export default function RegisterPage() {
       }
 
       // Proceder con el registro
-      const { error: signUpError } = await supabase.auth.signUp({
+      const { data: authData, error: signUpError } = await supabase.auth.signUp({
         email: data.email,
         password: data.password,
         options: {
@@ -87,6 +144,30 @@ export default function RegisterPage() {
       });
 
       if (signUpError) throw signUpError;
+
+      // Si el usuario se creó pero no hay perfil automático, crearlo manualmente
+      if (authData.user && !authData.user.email_confirmed_at) {
+        try {
+          // Intentar crear el perfil manualmente como fallback
+          const { error: profileError } = await supabase
+            .from('user_profiles')
+            .insert({
+              id: authData.user.id,
+              email: data.email,
+              username: data.username,
+              full_name: data.username,
+              credits: 1000
+            });
+          
+          if (profileError) {
+            console.warn('Profile creation fallback failed:', profileError);
+            // No lanzar error aquí, el trigger podría haber funcionado
+          }
+        } catch (profileError) {
+          console.warn('Profile creation fallback error:', profileError);
+          // No bloquear el registro por esto
+        }
+      }
 
       setSuccess('¡Cuenta creada exitosamente! Revisa tu email para confirmar tu cuenta y luego podrás iniciar sesión.');
       form.reset();
@@ -147,12 +228,31 @@ export default function RegisterPage() {
                       id="username"
                       type="text"
                       placeholder="tu_usuario"
-                      className="pl-10 bg-slate-800 border-slate-600 text-white placeholder:text-slate-500"
+                      className={`pl-10 pr-10 bg-slate-800 border-slate-600 text-white placeholder:text-slate-500 ${
+                        usernameAvailable === true ? 'border-green-500' : 
+                        usernameAvailable === false ? 'border-red-500' : ''
+                      }`}
                       {...form.register('username')}
                     />
+                    {/* Indicador de estado del username */}
+                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                      {checkingUsername ? (
+                        <Loader2 className="h-4 w-4 animate-spin text-slate-400" />
+                      ) : usernameAvailable === true ? (
+                        <Check className="h-4 w-4 text-green-500" />
+                      ) : usernameAvailable === false ? (
+                        <X className="h-4 w-4 text-red-500" />
+                      ) : null}
+                    </div>
                   </div>
                   {form.formState.errors.username && (
                     <p className="text-red-400 text-sm">{form.formState.errors.username.message}</p>
+                  )}
+                  {usernameAvailable === true && (
+                    <p className="text-green-400 text-sm">✓ Nombre de usuario disponible</p>
+                  )}
+                  {usernameAvailable === false && (
+                    <p className="text-red-400 text-sm">✗ Este nombre de usuario ya está en uso</p>
                   )}
                 </div>
 
@@ -268,7 +368,7 @@ export default function RegisterPage() {
                 {/* Submit Button */}
                 <Button
                   type="submit"
-                  disabled={isLoading || !isCaptchaVerified}
+                  disabled={isLoading || !isCaptchaVerified || usernameAvailable !== true || checkingUsername}
                   className="w-full bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 disabled:opacity-50"
                 >
                   {isLoading ? (
@@ -285,13 +385,12 @@ export default function RegisterPage() {
                 <div className="text-center">
                   <p className="text-slate-400 text-sm">
                     ¿Ya tienes una cuenta?{' '}
-                    <button
-                      type="button"
-                      onClick={() => router.push('/')}
-                      className="text-cyan-400 hover:text-cyan-300 font-medium"
+                    <Link
+                      href="/login"
+                      className="text-cyan-400 hover:text-cyan-300 font-medium transition-colors duration-200"
                     >
                       Inicia sesión aquí
-                    </button>
+                    </Link>
                   </p>
                 </div>
               </form>
