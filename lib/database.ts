@@ -261,8 +261,8 @@ export async function getCategories() {
 
 export async function getServerCategories() {
   try {
-    const { data, error } = await supabase
-      .from('server_categories')
+    const { data: categories, error } = await supabase
+      .from('game_categories')
       .select('*')
       .order('name');
 
@@ -271,7 +271,7 @@ export async function getServerCategories() {
       return { data: [], error };
     }
 
-    return { data: data || [], error: null };
+    return { data: categories || [], error: null };
   } catch (error) {
     console.error('Error getting server categories:', error);
     return { data: [], error };
@@ -284,7 +284,7 @@ export async function getUserServers(userId: string) {
       .from('user_servers')
       .select(`
         *,
-        category:server_categories(*)
+        category:game_categories(*)
       `)
       .eq('user_id', userId)
       .order('created_at', { ascending: false });
@@ -573,6 +573,27 @@ export interface UnifiedServer {
   source: 'hardcoded' | 'user_server';
 }
 
+// Función helper para obtener votos reales de un servidor
+export async function getRealVoteCount(serverId: string | number, serverType: string = 'user_server'): Promise<number> {
+  try {
+    const { data: voteCount, error } = await supabase
+      .rpc('get_server_vote_count', {
+        p_server_id: serverId.toString(),
+        p_server_type: serverType
+      });
+
+    if (error) {
+      console.error('Error obteniendo votos reales:', error);
+      return 0;
+    }
+
+    return voteCount || 0;
+  } catch (error) {
+    console.error('Error en getRealVoteCount:', error);
+    return 0;
+  }
+}
+
 // Función para normalizar un servidor hardcodeado a la interfaz unificada
 function normalizeHardcodedServer(server: Server): UnifiedServer {
   return {
@@ -610,7 +631,7 @@ function normalizeUserServer(server: UserServer): UnifiedServer {
       icon: server.category.icon || undefined
     } : undefined,
     _count: {
-      votes: Math.floor(Math.random() * 500) + 50 // Temporal: generar votos aleatorios
+      votes: 0 // Se actualizará con votos reales donde se use
     },
     source: 'user_server'
   };
@@ -624,8 +645,14 @@ export async function getAnyServerById(serverId: string): Promise<{ data: Unifie
       const { data: userServer, error: userError } = await getUserServerById(serverId);
       
       if (!userError && userServer && userServer.approved) {
+        const normalizedServer = normalizeUserServer(userServer);
+        
+        // Obtener votos reales
+        const realVotes = await getRealVoteCount(serverId, 'user_server');
+        normalizedServer._count = { votes: realVotes };
+        
         return { 
-          data: normalizeUserServer(userServer), 
+          data: normalizedServer, 
           error: null 
         };
       }
@@ -636,31 +663,16 @@ export async function getAnyServerById(serverId: string): Promise<{ data: Unifie
       const { data: supabaseServer, error: supabaseError } = await supabase
         .from('servers')
         .select(`
-          id,
-          title,
-          slug,
-          description,
-          website,
-          ip,
-          country,
-          language,
-          version,
-          experience,
-          max_level,
-          status,
-          premium,
-          approved,
-          created_at,
-          updated_at,
-          category_id,
-          user_id,
+          *,
           game_categories(id, name, slug)
         `)
         .eq('id', serverId)
-        .eq('approved', true)
         .single();
 
       if (!supabaseError && supabaseServer) {
+        // Obtener votos reales
+        const realVotes = await getRealVoteCount(serverId, 'hardcoded');
+        
         // Normalizar servidor de Supabase a UnifiedServer
         const normalizedSupabaseServer: UnifiedServer = {
           id: supabaseServer.id,
@@ -685,7 +697,7 @@ export async function getAnyServerById(serverId: string): Promise<{ data: Unifie
           user_id: supabaseServer.user_id?.toString(),
           category: undefined, // Simplificamos para evitar errores de tipado
           _count: {
-            votes: Math.floor(Math.random() * 500) + 50 // Temporal: generar votos aleatorios
+            votes: realVotes // Usar votos reales
           },
           source: 'hardcoded' // Marcamos como hardcoded para compatibilidad
         };
@@ -702,21 +714,27 @@ export async function getAnyServerById(serverId: string): Promise<{ data: Unifie
     // Si no se encontró en Supabase, intentar como servidor hardcodeado
     const numericId = parseInt(serverId);
     if (!isNaN(numericId)) {
-      const { data: hardcodedServer, error: hardcodedError } = await getServerById(numericId);
-      
-      if (!hardcodedError && hardcodedServer && hardcodedServer.approved) {
-        return { 
-          data: normalizeHardcodedServer(hardcodedServer), 
-          error: null 
-        };
+      const { data: hardcodedServers, error: hardcodedError } = await getServers();
+      if (!hardcodedError && hardcodedServers) {
+        const hardcodedServer = hardcodedServers.find((s: Server) => s.id === numericId);
+        if (hardcodedServer) {
+          const normalizedServer = normalizeHardcodedServer(hardcodedServer);
+          
+          // Obtener votos reales
+          const realVotes = await getRealVoteCount(numericId, 'hardcoded');
+          normalizedServer._count = { votes: realVotes };
+          
+          return { 
+            data: normalizedServer, 
+            error: null 
+          };
+        }
       }
     }
 
-    // Si llegamos aquí, no se encontró el servidor
     return { data: null, error: 'Servidor no encontrado' };
-
   } catch (error) {
-    console.error('Error getting server by ID:', error);
+    console.error('Error en getAnyServerById:', error);
     return { data: null, error };
   }
 }

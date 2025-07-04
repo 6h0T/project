@@ -134,14 +134,15 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ servers: [] })
     }
 
-    // Obtener estadísticas de votos para el mes actual
+    // Obtener estadísticas de votos reales para el mes actual
     const currentYear = new Date().getFullYear()
     const currentMonth = new Date().getMonth() + 1
     
     const serverIds = servers.map(s => s.id)
     
+    // Usar la tabla correcta de estadísticas de votos
     const { data: voteStats, error: voteError } = await supabase
-      .from('vote_stats')
+      .from('server_vote_stats')
       .select('server_id, total_votes, unique_ips')
       .in('server_id', serverIds)
       .eq('year', currentYear)
@@ -152,9 +153,20 @@ export async function GET(request: NextRequest) {
       // Continuar sin votos si hay error
     }
 
-    // Combinar datos de servidores con estadísticas de votos
-    const serversWithVotes = servers.map(server => {
-      const voteData = voteStats?.find(vs => vs.server_id === server.id)
+    // Combinar datos de servidores con estadísticas de votos reales
+    const serversWithVotes = await Promise.all(servers.map(async server => {
+      // Obtener votos reales usando la función de Supabase
+      const { data: realVotes, error: voteCountError } = await supabase
+        .rpc('get_server_vote_count', {
+          p_server_id: server.id.toString(),
+          p_server_type: 'hardcoded'
+        })
+
+      if (voteCountError) {
+        console.error('Error obteniendo votos reales para servidor', server.id, ':', voteCountError)
+      }
+
+      const votes = realVotes || 0
       
       return {
         id: server.id,
@@ -166,7 +178,7 @@ export async function GET(request: NextRequest) {
         serverType: 'PvP', // Valor por defecto, se puede agregar a la BD después
         platform: 'L2J', // Valor por defecto, se puede agregar a la BD después
         players: Math.floor(Math.random() * 500) + 100, // Simulado por ahora
-        votes: voteData?.total_votes || 0,
+        votes: votes, // Usar votos reales
         uptime: '99.5%', // Valor por defecto, se puede agregar a la BD después
         exp: server.experience ? `Exp x${server.experience}` : 'Exp x1',
         features: server.premium ? ['Premium', 'VIP'] : ['Normal'],
@@ -178,13 +190,13 @@ export async function GET(request: NextRequest) {
         slug: server.slug,
         created_at: server.created_at
       }
-    })
+    }))
 
-         // Ordenar por votos descendente y asignar ranking
-     serversWithVotes.sort((a, b) => b.votes - a.votes)
-     serversWithVotes.forEach((server, index) => {
-       server.rank = index + 1
-     })
+    // Ordenar por votos descendente y asignar ranking
+    serversWithVotes.sort((a, b) => b.votes - a.votes)
+    serversWithVotes.forEach((server, index) => {
+      server.rank = index + 1
+    })
 
     // Separar servidores premium y normales
     const premiumServers = serversWithVotes.filter(s => s.isPremium)

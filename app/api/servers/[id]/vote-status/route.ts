@@ -15,7 +15,7 @@ function getClientIP(request: NextRequest): string {
   return '127.0.0.1'
 }
 
-// Función simulada para verificar estado de votación (temporal)
+// Función REAL para verificar estado de votación
 async function checkVoteStatus(serverId: string, clientIP: string) {
   try {
     // Verificar que el servidor existe
@@ -28,30 +28,44 @@ async function checkVoteStatus(serverId: string, clientIP: string) {
       }
     }
 
-    // Simulación temporal del estado de votación
-    // En producción esto consultaría la tabla de votos real
-    const hasVoted = Math.random() > 0.7 // 30% probabilidad de haber votado
-    const monthlyVotes = Math.floor(Math.random() * 500) + 50
-    
-    if (hasVoted) {
-      const hoursRemaining = Math.floor(Math.random() * 12) + 1
-      const minutesRemaining = Math.floor(Math.random() * 60)
-      
+    // Determinar el tipo de servidor
+    let serverType = 'user_server'
+    if (server.source === 'hardcoded') {
+      serverType = 'hardcoded'
+    } else if (server.source === 'user_server') {
+      serverType = 'user_server'
+    }
+
+    // Verificar si puede votar usando la función de Supabase
+    const { data: canVoteData, error: canVoteError } = await supabase
+      .rpc('can_vote_for_server', {
+        p_server_id: serverId,
+        p_voter_ip: clientIP
+      })
+
+    if (canVoteError) {
+      console.error('Error verificando si puede votar:', canVoteError)
       return {
-        success: true,
-        userStatus: {
-          canVote: false,
-          hasVoted: true,
-          timeLeft: {
-            hours: hoursRemaining,
-            minutes: minutesRemaining
-          }
-        },
-        votes: {
-          monthly: monthlyVotes
-        }
+        success: false,
+        error: 'Error verificando estado de votación'
       }
-    } else {
+    }
+
+    // Obtener conteo de votos del mes actual
+    const { data: voteCount, error: voteCountError } = await supabase
+      .rpc('get_server_vote_count', {
+        p_server_id: serverId,
+        p_server_type: serverType
+      })
+
+    if (voteCountError) {
+      console.error('Error obteniendo conteo de votos:', voteCountError)
+    }
+
+    const totalVotes = voteCount || 0
+
+    if (canVoteData) {
+      // Puede votar
       return {
         success: true,
         userStatus: {
@@ -60,8 +74,42 @@ async function checkVoteStatus(serverId: string, clientIP: string) {
           timeLeft: null
         },
         votes: {
-          monthly: monthlyVotes
+          monthly: totalVotes
+        },
+        totalVotes: totalVotes
+      }
+    } else {
+      // No puede votar, obtener tiempo restante
+      const { data: timeLeftData, error: timeLeftError } = await supabase
+        .rpc('time_until_next_vote', {
+          p_server_id: serverId,
+          p_voter_ip: clientIP
+        })
+
+      let timeLeft = null
+      if (!timeLeftError && timeLeftData) {
+        // Convertir interval de PostgreSQL a horas y minutos
+        const intervalMatch = timeLeftData.match(/(\d+):(\d+):/)
+        if (intervalMatch) {
+          const hours = parseInt(intervalMatch[1])
+          const minutes = parseInt(intervalMatch[2])
+          if (hours > 0 || minutes > 0) {
+            timeLeft = { hours, minutes }
+          }
         }
+      }
+
+      return {
+        success: true,
+        userStatus: {
+          canVote: false,
+          hasVoted: true,
+          timeLeft: timeLeft
+        },
+        votes: {
+          monthly: totalVotes
+        },
+        totalVotes: totalVotes
       }
     }
   } catch (error) {

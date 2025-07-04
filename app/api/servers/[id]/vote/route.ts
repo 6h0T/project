@@ -34,12 +34,12 @@ function calculateTimeRemaining(lastVoteDate: Date) {
 }
 
 // Función para validar captcha simple
-function validateCaptcha(userInput: string, expectedCaptcha: string): boolean {
-  return userInput.toUpperCase() === expectedCaptcha.toUpperCase()
+function validateCaptcha(userInput: string, expected: string): boolean {
+  return userInput.toLowerCase() === expected.toLowerCase()
 }
 
-// Función simulada para registrar voto (temporal)
-async function registerVote(serverId: string, clientIP: string, userAgent: string, country: string) {
+// Función REAL para registrar voto
+async function registerVote(serverId: string, clientIP: string, userAgent: string, country: string, userId?: string) {
   try {
     // Verificar que el servidor existe y está aprobado
     const { data: server, error: serverError } = await getAnyServerById(serverId)
@@ -52,35 +52,53 @@ async function registerVote(serverId: string, clientIP: string, userAgent: strin
       }
     }
 
-    // Simulación temporal del registro de voto
-    // En producción esto insertaría en la tabla de votos real
-    const hasVotedRecently = Math.random() > 0.8 // 20% probabilidad de haber votado recientemente
-    
-    if (hasVotedRecently) {
-      const hoursRemaining = Math.floor(Math.random() * 12) + 1
-      const minutesRemaining = Math.floor(Math.random() * 60)
-      
+    // Determinar el tipo de servidor
+    let serverType = 'user_server'
+    if (server.source === 'hardcoded') {
+      serverType = 'hardcoded'
+    } else if (server.source === 'user_server') {
+      serverType = 'user_server'
+    }
+
+    // Usar la función de Supabase para registrar el voto
+    const { data: voteResult, error: voteError } = await supabase
+      .rpc('register_vote', {
+        p_server_id: serverId,
+        p_server_type: serverType,
+        p_voter_ip: clientIP,
+        p_user_id: userId || null,
+        p_user_agent: userAgent || null,
+        p_country: country || null
+      })
+
+    if (voteError) {
+      console.error('Error registrando voto:', voteError)
       return {
         success: false,
-        error: 'Ya has votado recientemente',
-        message: 'Solo puedes votar una vez cada 12 horas',
-        timeLeft: {
-          hours: hoursRemaining,
-          minutes: minutesRemaining
-        }
+        error: 'Error interno del servidor',
+        message: 'No se pudo registrar el voto. Inténtalo más tarde.'
       }
     }
 
-    // Simular registro exitoso
-    const newVoteCount = Math.floor(Math.random() * 500) + 50
-    
-    return {
-      success: true,
-      message: '¡Voto registrado exitosamente! Gracias por tu apoyo.',
-      server: {
-        id: server.id,
-        title: server.title,
-        totalVotes: newVoteCount
+    // La función register_vote retorna un JSON con el resultado
+    const result = voteResult
+
+    if (result.success) {
+      return {
+        success: true,
+        message: result.message,
+        server: {
+          id: server.id,
+          title: server.title,
+          totalVotes: result.totalVotes
+        }
+      }
+    } else {
+      return {
+        success: false,
+        error: result.error,
+        message: result.message,
+        timeLeft: result.timeLeft
       }
     }
   } catch (error) {
@@ -117,8 +135,19 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     const userAgent = request.headers.get('user-agent') || 'Unknown'
     const country = request.headers.get('cf-ipcountry') || 'Unknown'
 
+    // Intentar obtener userId de la sesión (si está disponible)
+    let userId: string | undefined
+    try {
+      // Aquí podrías implementar lógica para obtener userId de JWT/cookies de sesión
+      // Por ahora lo dejamos como undefined para usuarios no logueados
+      userId = body.userId || undefined
+    } catch (error) {
+      // Usuario no logueado o sesión inválida
+      userId = undefined
+    }
+
     // Registrar el voto usando la función actualizada
-    const result = await registerVote(serverId, clientIP, userAgent, country)
+    const result = await registerVote(serverId, clientIP, userAgent, country, userId)
 
     if (!result.success) {
       const statusCode = result.timeLeft ? 429 : 400

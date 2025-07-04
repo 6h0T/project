@@ -84,7 +84,7 @@ export default function ServerRegistrationForm({ onSuccess }: ServerRegistration
         setMessage('Error al cargar las categorías');
         setMessageType('error');
       } else {
-        setCategories(data);
+        setCategories(data || []);
       }
     } catch (error) {
       console.error('Error fetching categories:', error);

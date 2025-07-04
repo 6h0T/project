@@ -148,7 +148,7 @@ export async function GET(request: NextRequest) {
         .from('user_servers')
         .select(`
           *,
-          category:server_categories(*)
+          category:game_categories(*)
         `)
         .eq('approved', false)
         .in('status', ['pending', 'rejected'])
