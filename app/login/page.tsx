@@ -195,6 +195,16 @@ export default function LoginPage() {
                 </Button>
               </form>
 
+              {/* Enlace para olvidar contraseña */}
+              <div className="text-center">
+                <Link
+                  href="/forgot-password"
+                  className="text-slate-400 hover:text-cyan-300 text-sm transition-colors duration-200"
+                >
+                  ¿Olvidaste tu contraseña?
+                </Link>
+              </div>
+
               {/* Enlace a registro */}
               <div className="text-center pt-4 border-t border-slate-700">
                 <p className="text-slate-400 text-sm">

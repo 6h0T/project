@@ -6,9 +6,9 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/custom-select'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Loader2, Plus, Info, CheckCircle, XCircle } from 'lucide-react'
+import { Loader2, Plus, Info, CheckCircle, XCircle, Globe, Languages, Flag } from 'lucide-react'
 
 interface Category {
   id: number
@@ -179,7 +179,10 @@ export default function CreateServerPage() {
 
                 {/* Categoría */}
                 <div className="space-y-2">
-                  <Label className="text-slate-300">Categoría *</Label>
+                  <Label className="text-slate-300 flex items-center">
+                    <Globe className="mr-2 h-4 w-4 text-cyan-400" />
+                    Categoría *
+                  </Label>
                   {loadingCategories ? (
                     <div className="flex items-center space-x-2 text-slate-400">
                       <Loader2 className="h-4 w-4 animate-spin" />
@@ -192,16 +195,37 @@ export default function CreateServerPage() {
                       required
                     >
                       <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
-                        <SelectValue placeholder="Seleccionar categoría" />
+                        <SelectValue placeholder="Seleccionar categoría">
+                          {formData.categoryId && (() => {
+                            const selectedCategory = categories.find(c => c.id.toString() === formData.categoryId);
+                            return selectedCategory ? (
+                              <div className="flex items-center">
+                                <span className="mr-2">🎮</span>
+                                <span>{selectedCategory.name}</span>
+                                <span className="ml-2 text-xs text-slate-400">
+                                  ({selectedCategory._count.servers} servidores)
+                                </span>
+                              </div>
+                            ) : 'Seleccionar categoría';
+                          })()}
+                        </SelectValue>
                       </SelectTrigger>
                       <SelectContent className="bg-slate-700 border-slate-600">
                         {categories.map((category) => (
                           <SelectItem 
                             key={category.id} 
                             value={category.id.toString()}
-                            className="text-white hover:bg-slate-600"
+                            className="text-white hover:bg-slate-600 cursor-pointer"
                           >
-                            {category.name} ({category._count.servers} servidores)
+                            <div className="flex items-center justify-between w-full">
+                              <div className="flex items-center">
+                                <span className="mr-2">🎮</span>
+                                <span>{category.name}</span>
+                              </div>
+                              <span className="text-xs text-slate-400">
+                                {category._count.servers} servidores
+                              </span>
+                            </div>
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -242,43 +266,74 @@ export default function CreateServerPage() {
 
                 {/* País */}
                 <div className="space-y-2">
-                  <Label className="text-slate-300">País</Label>
+                  <Label className="text-slate-300 flex items-center">
+                    <Flag className="mr-2 h-4 w-4 text-green-400" />
+                    País
+                  </Label>
                   <Select
                     value={formData.country}
                     onValueChange={(value) => handleInputChange('country', value)}
                   >
                     <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
-                      <SelectValue />
+                      <SelectValue>
+                        {formData.country && (() => {
+                          const countryOptions: { [key: string]: string } = {
+                            'España': '🇪🇸 España',
+                            'International': '🌍 Internacional',
+                            'English': '🇺🇸 Estados Unidos',
+                            'Brazil': '🇧🇷 Brasil',
+                            'Russia': '🇷🇺 Rusia',
+                            'Germany': '🇩🇪 Alemania',
+                            'France': '🇫🇷 Francia'
+                          };
+                          return countryOptions[formData.country] || formData.country;
+                        })()}
+                      </SelectValue>
                     </SelectTrigger>
                     <SelectContent className="bg-slate-700 border-slate-600">
-                      <SelectItem value="España" className="text-white">🇪🇸 España</SelectItem>
-                      <SelectItem value="International" className="text-white">🌍 Internacional</SelectItem>
-                      <SelectItem value="English" className="text-white">🇺🇸 Estados Unidos</SelectItem>
-                      <SelectItem value="Brazil" className="text-white">🇧🇷 Brasil</SelectItem>
-                      <SelectItem value="Russia" className="text-white">🇷🇺 Rusia</SelectItem>
-                      <SelectItem value="Germany" className="text-white">🇩🇪 Alemania</SelectItem>
-                      <SelectItem value="France" className="text-white">🇫🇷 Francia</SelectItem>
+                      <SelectItem value="España" className="text-white hover:bg-slate-600">🇪🇸 España</SelectItem>
+                      <SelectItem value="International" className="text-white hover:bg-slate-600">🌍 Internacional</SelectItem>
+                      <SelectItem value="English" className="text-white hover:bg-slate-600">🇺🇸 Estados Unidos</SelectItem>
+                      <SelectItem value="Brazil" className="text-white hover:bg-slate-600">🇧🇷 Brasil</SelectItem>
+                      <SelectItem value="Russia" className="text-white hover:bg-slate-600">🇷🇺 Rusia</SelectItem>
+                      <SelectItem value="Germany" className="text-white hover:bg-slate-600">🇩🇪 Alemania</SelectItem>
+                      <SelectItem value="France" className="text-white hover:bg-slate-600">🇫🇷 Francia</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
                 {/* Idioma */}
                 <div className="space-y-2">
-                  <Label className="text-slate-300">Idioma</Label>
+                  <Label className="text-slate-300 flex items-center">
+                    <Languages className="mr-2 h-4 w-4 text-purple-400" />
+                    Idioma
+                  </Label>
                   <Select
                     value={formData.language}
                     onValueChange={(value) => handleInputChange('language', value)}
                   >
                     <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
-                      <SelectValue />
+                      <SelectValue>
+                        {formData.language && (() => {
+                          const languageOptions: { [key: string]: string } = {
+                            'es': '🇪🇸 Español',
+                            'en': '🇺🇸 English',
+                            'pt': '🇧🇷 Português',
+                            'fr': '🇫🇷 Français',
+                            'de': '🇩🇪 Deutsch',
+                            'ru': '🇷🇺 Русский'
+                          };
+                          return languageOptions[formData.language] || formData.language;
+                        })()}
+                      </SelectValue>
                     </SelectTrigger>
                     <SelectContent className="bg-slate-700 border-slate-600">
-                      <SelectItem value="es" className="text-white">Español</SelectItem>
-                      <SelectItem value="en" className="text-white">English</SelectItem>
-                      <SelectItem value="pt" className="text-white">Português</SelectItem>
-                      <SelectItem value="fr" className="text-white">Français</SelectItem>
-                      <SelectItem value="de" className="text-white">Deutsch</SelectItem>
-                      <SelectItem value="ru" className="text-white">Русский</SelectItem>
+                      <SelectItem value="es" className="text-white hover:bg-slate-600">🇪🇸 Español</SelectItem>
+                      <SelectItem value="en" className="text-white hover:bg-slate-600">🇺🇸 English</SelectItem>
+                      <SelectItem value="pt" className="text-white hover:bg-slate-600">🇧🇷 Português</SelectItem>
+                      <SelectItem value="fr" className="text-white hover:bg-slate-600">🇫🇷 Français</SelectItem>
+                      <SelectItem value="de" className="text-white hover:bg-slate-600">🇩🇪 Deutsch</SelectItem>
+                      <SelectItem value="ru" className="text-white hover:bg-slate-600">🇷🇺 Русский</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

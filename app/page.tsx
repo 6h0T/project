@@ -1,8 +1,11 @@
-import GameLayout from '@/components/GameLayout';
-import ServerCard from '@/components/ServerCard';
+'use client'
 
-// Servidores Premium (primeras 3 posiciones) - COMPACTOS
-const premiumServers = [
+import GameLayout from '@/components/GameLayout'
+import ServerCard from '@/components/ServerCard'
+import { useServers } from '@/hooks/useServers'
+
+// Servidores Premium hardcodeados como fallback
+const premiumServersHardcoded = [
   {
     id: 101,
     name: 'L2 PREMIUM ELITE',
@@ -53,144 +56,64 @@ const premiumServers = [
   }
 ];
 
-// Top Servers Normales (posiciones 1, 2, 3)
-const topServers = [
-  {
-    id: 1,
-    name: 'L2JADE',
-    description: 'Interlude x30 Sub acumulativas base +1 No custom Ofrecemos un servidor de calidad No esperes mas unete ahora mismo!',
-    country: 'Spain',
-    chronicle: 'Interlude',
-    serverType: 'PvP',
-    platform: 'L2J',
-    players: 1644,
-    votes: 1644,
-    uptime: '99.5%',
-    exp: 'Exp x30',
-    features: ['Stacksub', 'L2J'],
-    rank: 1,
-    isPremium: false
-  },
-  {
-    id: 2,
-    name: 'DARK DRAGON',
-    description: 'DARK DRAGON *NEW ERA* LONG TERM HIGH FIVE SERVER A new era begins... The concept is based as a long-running non P2W, emulating the...',
-    country: 'International',
-    chronicle: 'High Five',
-    serverType: 'Mixed',
-    platform: 'L2J',
-    players: 173,
-    votes: 173,
-    uptime: '98.2%',
-    exp: 'Exp x2',
-    features: ['High Five', 'Normal'],
-    rank: 2,
-    isPremium: false
-  },
-  {
-    id: 3,
-    name: 'MASTER OF LINEAGE',
-    description: 'Master of Lineage 2 Server! XP / SP / Drop / Spoil = x20 Adena = x30 Raid Drop = x3 Quest Drop = x10 Quest Reward = x10 Manor = x15 Party XP/SP Multiplier',
-    country: 'English',
-    chronicle: 'High Five',
-    serverType: 'PvE',
-    platform: 'L2J',
-    players: 154,
-    votes: 154,
-    uptime: '97.8%',
-    exp: 'Exp x20',
-    features: ['English', 'Normal'],
-    rank: 3,
-    isPremium: false
-  },
-  {
-    id: 4,
-    name: 'L2KINGDOMS',
-    description: '#U3Games #L2Kingdoms | High Five | Multi-Lang | VIP FREE Las leyendas nunca mueren! Disfruta de nuestro nuevo servidor en modo clasico o pvp, tu eliges!',
-    country: 'Spain',
-    chronicle: 'High Five',
-    serverType: 'PvP',
-    platform: 'L2J',
-    players: 29,
-    votes: 29,
-    uptime: '95.1%',
-    exp: 'Exp x10',
-    features: ['Spanish', 'Normal'],
-    rank: 4,
-    isPremium: false
-  },
-  {
-    id: 5,
-    name: 'L2CRIPTO.COM',
-    description: 'L2Crypto.com is the first server with MARKETPLACE where you can post all your items and characters for sale or buy them with REAL MONEY',
-    country: 'Spain',
-    chronicle: 'Interlude',
-    serverType: 'Mixed',
-    platform: 'L2J',
-    players: 20,
-    votes: 20,
-    uptime: '92.3%',
-    exp: 'Exp x1',
-    features: ['Spanish', 'Normal'],
-    rank: 5,
-    isPremium: false
-  },
-  {
-    id: 6,
-    name: 'LINEAGE REVOLUTION',
-    description: 'Nuevo servidor con sistema de clanes mejorado, eventos automáticos y sistema anti-bot avanzado. ¡Únete a la revolución!',
-    country: 'International',
-    chronicle: 'Gracia',
-    serverType: 'PvP',
-    platform: 'L2J',
-    players: 89,
-    votes: 89,
-    uptime: '96.5%',
-    exp: 'Exp x7',
-    features: ['Gracia', 'Anti-Bot'],
-    rank: 6,
-    isPremium: false
-  },
-  {
-    id: 7,
-    name: 'ETERNAL LINEAGE',
-    description: 'Servidor de larga duración con economía estable, drops balanceados y comunidad madura. Perfecto para jugadores serios.',
-    country: 'Brazil',
-    chronicle: 'Freya',
-    serverType: 'Mixed',
-    platform: 'L2J',
-    players: 156,
-    votes: 156,
-    uptime: '98.1%',
-    exp: 'Exp x5',
-    features: ['Brazilian', 'Stable'],
-    rank: 7,
-    isPremium: false
-  },
-  {
-    id: 8,
-    name: 'PHOENIX RISING',
-    description: 'Renace como un fénix en este servidor con sistema de reencarnación único, mascotas evolucionables y dungeons exclusivos.',
-    country: 'Russia',
-    chronicle: 'High Five',
-    serverType: 'PvE',
-    platform: 'L2J',
-    players: 234,
-    votes: 234,
-    uptime: '97.3%',
-    exp: 'Exp x12',
-    features: ['Russian', 'Custom'],
-    rank: 8,
-    isPremium: false
-  }
-];
-
 export default function Home() {
-  return (
+  const { premiumServers: apiPremiumServers, normalServers: apiNormalServers, totalServers, loading, error, refetch } = useServers('lineage-ii')
+
+  // Usar servidores de la API si existen, sino usar hardcodeados
+  const premiumServers = apiPremiumServers.length > 0 ? apiPremiumServers : premiumServersHardcoded
+  const normalServers = apiNormalServers
+
+  if (loading) {
+    return (
+      <GameLayout
+        title="Lineage II"
+        description="Top Servers"
+        totalServers={0}
+        bgImage="https://images.pexels.com/photos/442576/pexels-photo-442576.jpeg"
+      >
+        <div className="flex justify-center items-center min-h-[400px]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+            <p className="text-gray-600 dark:text-gray-400">Cargando servidores...</p>
+          </div>
+        </div>
+      </GameLayout>
+    )
+  }
+
+    if (error) {
+    return (
+      <GameLayout
+        title="Lineage II"
+        description="Top Servers"
+        totalServers={0}
+        bgImage="https://images.pexels.com/photos/442576/pexels-photo-442576.jpeg"
+      >
+        <div className="flex justify-center items-center min-h-[400px]">
+          <div className="text-center max-w-2xl">
+            <div className="text-red-500 text-6xl mb-4">⚠️</div>
+            <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-2">
+              Error al cargar servidores
+            </h3>
+            <p className="text-gray-600 dark:text-gray-400 mb-4">{error}</p>
+            
+            <button 
+              onClick={() => refetch()} 
+              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+            >
+              Reintentar
+            </button>
+          </div>
+        </div>
+      </GameLayout>
+    )
+  }
+
+    return (
     <GameLayout
       title="Lineage II"
       description="Top Servers"
-      totalServers={450}
+      totalServers={totalServers || 450}
       bgImage="https://images.pexels.com/photos/442576/pexels-photo-442576.jpeg"
     >
       {/* Sección de Servidores Premium - COMPACTA */}
@@ -241,11 +164,11 @@ export default function Home() {
         </div>
         
         <div className="space-y-3">
-          {topServers.map((server) => (
+          {normalServers.map((server) => (
             <ServerCard key={server.id} server={server} />
           ))}
         </div>
       </div>
     </GameLayout>
-  );
+  )
 }

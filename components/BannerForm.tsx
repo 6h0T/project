@@ -11,10 +11,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/custom-select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, Upload, CreditCard, Calendar } from 'lucide-react';
+import { Loader2, Upload, CreditCard, Calendar, Gamepad2 } from 'lucide-react';
 import CountryFlag from './CountryFlag';
 
 const bannerSchema = z.object({
@@ -207,15 +207,43 @@ export default function BannerForm({ isOpen, onClose, onSuccess }: BannerFormPro
           {/* Configuration */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label className="text-slate-300">Posición del Banner</Label>
+              <Label className="text-slate-300 flex items-center">
+                <CreditCard className="mr-2 h-4 w-4 text-cyan-400" />
+                Posición del Banner
+              </Label>
               <Select value={watchedValues.position} onValueChange={(value) => form.setValue('position', value as any)}>
-                <SelectTrigger className="bg-slate-800 border-slate-600 text-white">
-                  <SelectValue />
+                <SelectTrigger className="bg-slate-800 border-slate-600 text-white h-auto py-3">
+                  <SelectValue>
+                    {watchedValues.position && (() => {
+                      const selectedPos = positions.find(p => p.value === watchedValues.position);
+                      return selectedPos ? (
+                        <div className="flex items-center">
+                          <span className="mr-2 text-lg">🎯</span>
+                          <div className="flex flex-col text-left">
+                            <span className="text-white font-medium">{selectedPos.label}</span>
+                            <span className="text-xs text-slate-400">{selectedPos.cost} créditos/día</span>
+                          </div>
+                        </div>
+                      ) : 'Seleccionar posición';
+                    })()}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent className="bg-slate-800 border-slate-600">
                   {positions.map((position) => (
-                    <SelectItem key={position.value} value={position.value} className="text-white">
-                      {position.label} - {position.cost} créditos/día
+                    <SelectItem 
+                      key={position.value} 
+                      value={position.value} 
+                      className="text-white hover:bg-slate-700 cursor-pointer p-3"
+                    >
+                      <div className="flex items-center justify-between w-full">
+                        <div className="flex items-center">
+                          <span className="mr-3 text-lg">🎯</span>
+                          <span className="font-medium">{position.label}</span>
+                        </div>
+                        <div className="bg-cyan-500/20 text-cyan-400 px-2 py-1 rounded text-sm font-bold">
+                          {position.cost} créditos/día
+                        </div>
+                      </div>
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -223,16 +251,34 @@ export default function BannerForm({ isOpen, onClose, onSuccess }: BannerFormPro
             </div>
 
             <div>
-              <Label className="text-slate-300">Categoría del Juego</Label>
+              <Label className="text-slate-300 flex items-center">
+                <Gamepad2 className="mr-2 h-4 w-4 text-green-400" />
+                Categoría del Juego
+              </Label>
               <Select value={watchedValues.gameCategory} onValueChange={(value) => form.setValue('gameCategory', value)}>
                 <SelectTrigger className="bg-slate-800 border-slate-600 text-white">
-                  <SelectValue />
+                  <SelectValue>
+                    {watchedValues.gameCategory && (() => {
+                      const selectedCategory = gameCategories.find(c => c.value === watchedValues.gameCategory);
+                      return selectedCategory ? (
+                        <div className="flex items-center">
+                          <span className="mr-2">🎮</span>
+                          <span>{selectedCategory.label}</span>
+                        </div>
+                      ) : 'Seleccionar categoría';
+                    })()}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent className="bg-slate-800 border-slate-600">
                   {gameCategories.map((category) => (
-                    <SelectItem key={category.value} value={category.value} className="text-white">
+                    <SelectItem 
+                      key={category.value} 
+                      value={category.value} 
+                      className="text-white hover:bg-slate-700 cursor-pointer"
+                    >
                       <div className="flex items-center space-x-2">
                         <CountryFlag country={category.flag} size="sm" />
+                        <span>🎮</span>
                         <span>{category.label}</span>
                       </div>
                     </SelectItem>
@@ -243,15 +289,45 @@ export default function BannerForm({ isOpen, onClose, onSuccess }: BannerFormPro
           </div>
 
           <div>
-            <Label className="text-slate-300">Duración</Label>
+            <Label className="text-slate-300 flex items-center">
+              <Calendar className="mr-2 h-4 w-4 text-purple-400" />
+              Duración
+            </Label>
             <Select value={watchedValues.duration} onValueChange={(value) => form.setValue('duration', value as any)}>
               <SelectTrigger className="bg-slate-800 border-slate-600 text-white">
-                <SelectValue />
+                <SelectValue>
+                  {watchedValues.duration && (() => {
+                    const selectedDuration = durations.find(d => d.value === watchedValues.duration);
+                    return selectedDuration ? (
+                      <div className="flex items-center justify-between w-full">
+                        <div className="flex items-center">
+                          <span className="mr-2">⏱️</span>
+                          <span>{selectedDuration.label}</span>
+                        </div>
+                        <span className="text-xs text-slate-400">
+                          x{selectedDuration.multiplier} multiplicador
+                        </span>
+                      </div>
+                    ) : 'Seleccionar duración';
+                  })()}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent className="bg-slate-800 border-slate-600">
                 {durations.map((duration) => (
-                  <SelectItem key={duration.value} value={duration.value} className="text-white">
-                    {duration.label} (x{duration.multiplier} multiplicador)
+                  <SelectItem 
+                    key={duration.value} 
+                    value={duration.value} 
+                    className="text-white hover:bg-slate-700 cursor-pointer"
+                  >
+                    <div className="flex items-center justify-between w-full">
+                      <div className="flex items-center">
+                        <span className="mr-2">⏱️</span>
+                        <span>{duration.label}</span>
+                      </div>
+                      <span className="text-xs text-slate-400 ml-4">
+                        x{duration.multiplier} multiplicador
+                      </span>
+                    </div>
                   </SelectItem>
                 ))}
               </SelectContent>

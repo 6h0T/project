@@ -1,63 +1,65 @@
+'use client'
+
 import GameLayout from '@/components/GameLayout';
 import ServerCard from '@/components/ServerCard';
-
-const pwServers = [
-  {
-    id: 1,
-    name: 'Perfect World Reborn',
-    description: 'Classic Perfect World International experience with enhanced graphics and improved gameplay mechanics.',
-    country: 'International',
-    chronicle: 'Classic',
-    serverType: 'PvP',
-    platform: 'PWI',
-    players: 1450,
-    votes: 1450,
-    uptime: '99.3%',
-    exp: 'Exp x2',
-    features: ['Classic', 'PvP', 'Enhanced'],
-    rank: 1
-  },
-  {
-    id: 2,
-    name: 'Mystic Realms',
-    description: 'High-rate Perfect World server with custom content and regular events. Explore the perfect world!',
-    country: 'English',
-    chronicle: 'Rising Tide',
-    serverType: 'Mixed',
-    platform: 'PWI',
-    players: 980,
-    votes: 980,
-    uptime: '98.1%',
-    exp: 'Exp x5',
-    features: ['Rising Tide', 'Custom', 'Events'],
-    rank: 2
-  },
-  {
-    id: 3,
-    name: 'Celestial Dynasty',
-    description: 'Balanced Perfect World server focusing on teamwork and guild wars. Build your dynasty today!',
-    country: 'International',
-    chronicle: 'Genesis',
-    serverType: 'PvE',
-    platform: 'PWI',
-    players: 640,
-    votes: 640,
-    uptime: '97.5%',
-    exp: 'Exp x3',
-    features: ['Genesis', 'Guild Wars', 'Balanced'],
-    rank: 3
-  }
-];
+import { useServers } from '@/hooks/useServers';
 
 export default function PerfectWorldPage() {
+  const { normalServers, totalServers, loading, error, refetch } = useServers('perfect-world');
+
+  if (loading) {
+    return (
+      <GameLayout
+        title="Perfect World"
+        description="Discover Your Perfect World"
+        totalServers={0}
+        bgImage="https://images.pexels.com/photos/1174732/pexels-photo-1174732.jpeg"
+      >
+        <div className="flex justify-center items-center min-h-[400px]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+            <p className="text-gray-600 dark:text-gray-400">Cargando servidores...</p>
+          </div>
+        </div>
+      </GameLayout>
+    );
+  }
+
+  if (error) {
+    return (
+      <GameLayout
+        title="Perfect World"
+        description="Discover Your Perfect World"
+        totalServers={0}
+        bgImage="https://images.pexels.com/photos/1174732/pexels-photo-1174732.jpeg"
+      >
+        <div className="flex justify-center items-center min-h-[400px]">
+          <div className="text-center">
+            <div className="text-red-500 text-6xl mb-4">⚠️</div>
+            <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-2">
+              Error al cargar servidores
+            </h3>
+            <p className="text-gray-600 dark:text-gray-400 mb-4">{error}</p>
+            <button 
+              onClick={() => refetch()} 
+              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+            >
+              Reintentar
+            </button>
+          </div>
+        </div>
+      </GameLayout>
+    );
+  }
+
   return (
     <GameLayout
       title="Perfect World"
       description="Discover Your Perfect World"
-      totalServers={92}
+      totalServers={totalServers || 92}
       bgImage="https://images.pexels.com/photos/1174732/pexels-photo-1174732.jpeg"
     >
-      {pwServers.map((server) => (
+      {normalServers.map((server) => (
         <ServerCard key={server.id} server={server} />
       ))}
     </GameLayout>

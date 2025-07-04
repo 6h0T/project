@@ -1,63 +1,65 @@
+'use client'
+
 import GameLayout from '@/components/GameLayout';
 import ServerCard from '@/components/ServerCard';
+import { useServers } from '@/hooks/useServers';
 
-const wowServers = [
-  {
-    id: 1,
-    name: 'Azeroth Reborn',
-    description: 'Vanilla World of Warcraft experience with Blizzlike gameplay and active community of 3000+ players.',
-    country: 'International',
-    chronicle: 'Vanilla',
-    serverType: 'PvP',
-    platform: 'WoW',
-    players: 3500,
-    votes: 3500,
-    uptime: '99.8%',
-    exp: 'Blizzlike',
-    features: ['Vanilla', 'Blizzlike', 'High Pop'],
-    rank: 1
-  },
-  {
-    id: 2,
-    name: 'Burning Crusade Legacy',
-    description: 'The Burning Crusade expansion with enhanced features and bug fixes. Relive the classic experience!',
-    country: 'English',
-    chronicle: 'TBC',
-    serverType: 'PvE',
-    platform: 'WoW',
-    players: 2100,
-    votes: 2100,
-    uptime: '98.5%',
-    exp: 'x1',
-    features: ['TBC', 'Enhanced', 'Bug Fixes'],
-    rank: 2
-  },
-  {
-    id: 3,
-    name: 'Wrath of the Lich King+',
-    description: 'WotLK server with custom content and quality of life improvements. Experience Northrend again!',
-    country: 'International',
-    chronicle: 'WotLK',
-    serverType: 'Mixed',
-    platform: 'WoW',
-    players: 1800,
-    votes: 1800,
-    uptime: '97.9%',
-    exp: 'x2',
-    features: ['WotLK', 'Custom', 'QoL'],
-    rank: 3
+export default function WoWPage() {
+  const { normalServers, totalServers, loading, error, refetch } = useServers('wow');
+
+  if (loading) {
+    return (
+      <GameLayout
+        title="World of Warcraft"
+        description="Enter the World of Azeroth"
+        totalServers={0}
+        bgImage="https://images.pexels.com/photos/1181244/pexels-photo-1181244.jpeg"
+      >
+        <div className="flex justify-center items-center min-h-[400px]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+            <p className="text-gray-600 dark:text-gray-400">Cargando servidores...</p>
+          </div>
+        </div>
+      </GameLayout>
+    );
   }
-];
 
-export default function WowPage() {
+  if (error) {
+    return (
+      <GameLayout
+        title="World of Warcraft"
+        description="Enter the World of Azeroth"
+        totalServers={0}
+        bgImage="https://images.pexels.com/photos/1181244/pexels-photo-1181244.jpeg"
+      >
+        <div className="flex justify-center items-center min-h-[400px]">
+          <div className="text-center">
+            <div className="text-red-500 text-6xl mb-4">⚠️</div>
+            <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-2">
+              Error al cargar servidores
+            </h3>
+            <p className="text-gray-600 dark:text-gray-400 mb-4">{error}</p>
+            <button 
+              onClick={() => refetch()} 
+              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+            >
+              Reintentar
+            </button>
+          </div>
+        </div>
+      </GameLayout>
+    );
+  }
+
   return (
     <GameLayout
       title="World of Warcraft"
-      description="For Azeroth!"
-      totalServers={275}
-      bgImage="https://images.pexels.com/photos/1174732/pexels-photo-1174732.jpeg"
+      description="Enter the World of Azeroth"
+      totalServers={totalServers || 189}
+      bgImage="https://images.pexels.com/photos/1181244/pexels-photo-1181244.jpeg"
     >
-      {wowServers.map((server) => (
+      {normalServers.map((server) => (
         <ServerCard key={server.id} server={server} />
       ))}
     </GameLayout>

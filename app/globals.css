@@ -161,3 +161,26 @@
   display: table;
   clear: both;
 }
+
+/* Profile dropdown personalizado - animación desde el botón hacia abajo */
+.profile-dropdown-custom {
+  transform-origin: top center;
+  animation: dropdown-appear 0.25s ease-out forwards;
+}
+
+@keyframes dropdown-appear {
+  from {
+    opacity: 0;
+    transform: translateY(-12px) scaleY(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scaleY(1);
+  }
+}
+
+/* Animación suave para hover en elementos del dropdown */
+.profile-dropdown-custom button,
+.profile-dropdown-custom a {
+  transition: all 0.15s ease-in-out;
+}

@@ -3,15 +3,19 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
+import { getUserServers, type UserServer } from '@/lib/database';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/custom-select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import ServerRegistrationForm from '@/components/ServerRegistrationForm';
+import UserServersList from '@/components/UserServersList';
 import { 
   User, 
   CreditCard, 
@@ -35,7 +39,9 @@ import {
   Crown,
   AlertTriangle,
   CheckCircle,
-  XCircle
+  XCircle,
+  Server,
+  Loader2
 } from 'lucide-react';
 
 interface UserProfile {
@@ -54,19 +60,49 @@ interface Banner {
   description: string | null;
   image_url: string;
   target_url: string;
-  position: 'top' | 'sidebar' | 'bottom';
+  position: 'premium-card' | 'top' | 'sidebar' | 'bottom';
   game_category: string;
   status: 'active' | 'pending' | 'rejected';
   credits_cost: number;
   start_date: string | null;
   end_date: string | null;
   created_at: string;
+  user_server_id?: number;
 }
 
 const bannerPositions = [
-  { value: 'top', label: 'Banner Superior (728x90)', cost: 200, description: 'Máxima visibilidad en la parte superior' },
-  { value: 'sidebar', label: 'Banner Lateral (300x250)', cost: 150, description: 'Visible en todas las páginas laterales' },
-  { value: 'bottom', label: 'Banner Inferior (728x90)', cost: 100, description: 'Posición al final del contenido' },
+  { 
+    value: 'premium-card', 
+    label: '⭐ Tarjetas Premium de Servidores', 
+    cost: 350, 
+    description: 'Destacado especial en tarjetas de servidores con diseño premium',
+    icon: '⭐',
+    featured: true
+  },
+  { 
+    value: 'top', 
+    label: 'Banner Superior (728x90)', 
+    cost: 200, 
+    description: 'Máxima visibilidad en la parte superior',
+    icon: '🔝',
+    featured: false
+  },
+  { 
+    value: 'sidebar', 
+    label: 'Banner Lateral (300x250)', 
+    cost: 150, 
+    description: 'Visible en todas las páginas laterales',
+    icon: '🏢',
+    featured: false
+  },
+  { 
+    value: 'bottom', 
+    label: 'Banner Inferior (728x90)', 
+    cost: 100, 
+    description: 'Posición al final del contenido',
+    icon: '📍',
+    featured: false
+  },
 ];
 
 const durations = [
@@ -90,8 +126,12 @@ export default function Dashboard() {
   const router = useRouter();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [banners, setBanners] = useState<Banner[]>([]);
+  const [userServers, setUserServers] = useState<UserServer[]>([]);
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [loadingBanners, setLoadingBanners] = useState(true);
+  const [activeTab, setActiveTab] = useState('servers');
+  const [showServerForm, setShowServerForm] = useState(false);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
   
   // Form states
   const [formData, setFormData] = useState({
@@ -116,21 +156,58 @@ export default function Dashboard() {
     if (user) {
       fetchProfile();
       fetchBanners();
+      fetchUserServers();
     }
   }, [user, loading, router]);
 
   const fetchProfile = async () => {
     try {
-      const { data, error } = await supabase
+      console.log('Fetching profile for user:', user!.id);
+      
+      let { data, error } = await supabase
         .from('user_profiles')
         .select('*')
         .eq('id', user!.id)
         .single();
 
-      if (error) throw error;
-      setProfile(data);
+      if (error) {
+        console.log('Profile fetch error:', error);
+        
+        // Si el perfil no existe, créalo automáticamente
+        if (error.code === 'PGRST116') {
+          console.log('Profile not found, creating new profile...');
+          
+          const { data: newProfile, error: createError } = await supabase
+            .from('user_profiles')
+            .insert({
+              id: user!.id,
+              email: user!.email!,
+              full_name: user!.user_metadata?.full_name || null,
+              credits: 1000, // Créditos iniciales
+              username: user!.user_metadata?.username || null,
+              avatar_url: null
+            })
+            .select()
+            .single();
+
+          if (createError) {
+            console.error('Error creating profile:', createError);
+            throw createError;
+          }
+          
+          console.log('Profile created successfully:', newProfile);
+          setProfile(newProfile);
+        } else {
+          throw error;
+        }
+      } else {
+        console.log('Profile found:', data);
+        setProfile(data);
+      }
     } catch (error) {
-      console.error('Error fetching profile:', error);
+      console.error('Error in fetchProfile:', error);
+      setMessage('Error al cargar el perfil. Intentando de nuevo...');
+      setMessageType('error');
     } finally {
       setLoadingProfile(false);
     }
@@ -153,6 +230,19 @@ export default function Dashboard() {
     }
   };
 
+  const fetchUserServers = async () => {
+    try {
+      const { data, error } = await getUserServers(user!.id);
+      if (error) {
+        console.error('Error fetching user servers:', error);
+      } else {
+        setUserServers(data);
+      }
+    } catch (error) {
+      console.error('Error fetching user servers:', error);
+    }
+  };
+
   const calculateCost = () => {
     const position = bannerPositions.find(p => p.value === formData.position);
     const duration = durations.find(d => d.value === formData.duration);
@@ -169,6 +259,28 @@ export default function Dashboard() {
       setMessage('Créditos insuficientes para crear este banner');
       setMessageType('error');
       return;
+    }
+
+    // Validar límite de tarjetas premium
+    if (formData.position === 'premium-card') {
+      try {
+        const { data: canCreate, error } = await supabase.rpc('check_premium_card_limit', {
+          user_id_param: user.id
+        });
+
+        if (error) throw error;
+        
+        if (!canCreate) {
+          setMessage('Has alcanzado el límite máximo de 4 tarjetas premium activas');
+          setMessageType('error');
+          return;
+        }
+      } catch (error: any) {
+        console.error('Error checking premium limit:', error);
+        setMessage('Error al validar límite de tarjetas premium');
+        setMessageType('error');
+        return;
+      }
     }
 
     setIsCreating(true);
@@ -269,21 +381,84 @@ export default function Dashboard() {
     }
   };
 
+  const handleServerSuccess = () => {
+    setShowServerForm(false);
+    setRefreshTrigger(prev => prev + 1);
+  };
+
+  const handleCreateServer = () => {
+    setShowServerForm(true);
+  };
+
+  const handleEditServer = (server: UserServer) => {
+    // TODO: Implementar edición de servidor
+    console.log('Edit server:', server);
+  };
+
   if (loading || loadingProfile) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-cyan-400"></div>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-cyan-400 mx-auto mb-4"></div>
+          <p className="text-white text-lg">Cargando dashboard...</p>
+          <p className="text-slate-400 text-sm">Preparando tu cuenta</p>
+        </div>
       </div>
     );
   }
 
-  if (!user || !profile) {
-    return null;
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-white mb-4">Acceso Restringido</h2>
+          <p className="text-slate-400 mb-6">Necesitas iniciar sesión para acceder al dashboard</p>
+          <Button onClick={() => router.push('/login')} className="bg-gradient-to-r from-cyan-500 to-blue-500">
+            Iniciar Sesión
+          </Button>
+        </div>
+      </div>
+    );
   }
 
+  if (!profile) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
+        <div className="text-center max-w-md mx-auto p-6">
+          <div className="bg-red-900/20 border border-red-500/50 rounded-lg p-6">
+            <h2 className="text-xl font-bold text-red-400 mb-4">Error al cargar perfil</h2>
+            <p className="text-red-300 mb-6">
+              No se pudo cargar tu perfil. Esto puede deberse a un problema de conexión o configuración.
+            </p>
+            <div className="space-y-3">
+              <Button 
+                onClick={() => {
+                  setLoadingProfile(true);
+                  fetchProfile();
+                }} 
+                className="w-full bg-gradient-to-r from-cyan-500 to-blue-500"
+              >
+                Reintentar
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={() => router.push('/')} 
+                className="w-full border-slate-600 text-slate-300"
+              >
+                Volver al Inicio
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Estadísticas
   const activeBanners = banners.filter(b => b.status === 'active').length;
   const pendingBanners = banners.filter(b => b.status === 'pending').length;
   const totalInvestment = banners.reduce((sum, b) => sum + b.credits_cost, 0);
+  const approvedServers = userServers.filter(s => s.approved).length;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
@@ -292,13 +467,13 @@ export default function Dashboard() {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-white mb-2">Dashboard</h1>
-          <p className="text-slate-400">Gestiona tu cuenta y campañas publicitarias</p>
+          <p className="text-slate-400">Gestiona tus servidores y campañas publicitarias</p>
         </div>
 
-        {/* 3 Column Layout */}
+        {/* Layout con sidebar y contenido principal */}
         <div className="grid grid-cols-12 gap-8">
           
-          {/* Left Column - Account Information */}
+          {/* Sidebar izquierdo - Perfil y estadísticas */}
           <div className="col-span-12 lg:col-span-3 space-y-6">
             
             {/* Profile Card */}
@@ -320,17 +495,6 @@ export default function Dashboard() {
                   <CreditCard className="mr-2 h-4 w-4" />
                   Comprar Créditos
                 </Button>
-                
-                <div className="pt-4 border-t border-slate-700 space-y-2">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-slate-400">Miembro desde</span>
-                    <span className="text-white">{new Date(profile.created_at).toLocaleDateString('es-ES')}</span>
-                  </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-slate-400">Última actividad</span>
-                    <span className="text-white">{new Date(profile.updated_at).toLocaleDateString('es-ES')}</span>
-                  </div>
-                </div>
               </CardContent>
             </Card>
 
@@ -340,8 +504,20 @@ export default function Dashboard() {
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <div className="text-2xl font-bold text-green-400">{activeBanners}</div>
-                      <div className="text-xs text-slate-400">Banners Activos</div>
+                      <div className="text-2xl font-bold text-cyan-400">{userServers.length}</div>
+                      <div className="text-xs text-slate-400">Servidores</div>
+                    </div>
+                    <Server className="h-8 w-8 text-cyan-400" />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-slate-800/50 border-slate-700">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="text-2xl font-bold text-green-400">{approvedServers}</div>
+                      <div className="text-xs text-slate-400">Aprobados</div>
                     </div>
                     <CheckCircle className="h-8 w-8 text-green-400" />
                   </div>
@@ -352,22 +528,10 @@ export default function Dashboard() {
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <div className="text-2xl font-bold text-yellow-400">{pendingBanners}</div>
-                      <div className="text-xs text-slate-400">En Revisión</div>
+                      <div className="text-2xl font-bold text-yellow-400">{activeBanners}</div>
+                      <div className="text-xs text-slate-400">Banners Activos</div>
                     </div>
-                    <Clock className="h-8 w-8 text-yellow-400" />
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-slate-800/50 border-slate-700">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="text-2xl font-bold text-cyan-400">{banners.length}</div>
-                      <div className="text-xs text-slate-400">Total Banners</div>
-                    </div>
-                    <BarChart3 className="h-8 w-8 text-cyan-400" />
+                    <ImageIcon className="h-8 w-8 text-yellow-400" />
                   </div>
                 </CardContent>
               </Card>
@@ -384,312 +548,124 @@ export default function Dashboard() {
                 </CardContent>
               </Card>
             </div>
-
-            {/* Quick Actions */}
-            <Card className="bg-slate-800/50 border-slate-700">
-              <CardHeader>
-                <CardTitle className="text-white text-sm">Acciones Rápidas</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <Button variant="outline" size="sm" className="w-full border-slate-600 text-slate-300">
-                  <Settings className="mr-2 h-4 w-4" />
-                  Configuración
-                </Button>
-                <Button variant="outline" size="sm" className="w-full border-slate-600 text-slate-300">
-                  <Mail className="mr-2 h-4 w-4" />
-                  Soporte
-                </Button>
-              </CardContent>
-            </Card>
           </div>
 
-          {/* Middle Column - Create Banner Form */}
-          <div className="col-span-12 lg:col-span-6">
-            <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-md">
-              <CardHeader>
-                <CardTitle className="text-white flex items-center text-xl">
-                  <Plus className="mr-3 h-6 w-6 text-cyan-400" />
-                  Crear Nuevo Banner Publicitario
-                </CardTitle>
-                <CardDescription className="text-slate-300">
-                  Miles de personas están conectadas a SVTOP.NET, accediendo a nuestros mejores servidores todo el día. 
-                  Llega a todos ellos promocionando tu página aquí y así ganar más visitas, aumentando la presencia en la red.
-                </CardDescription>
-              </CardHeader>
+          {/* Contenido principal */}
+          <div className="col-span-12 lg:col-span-9">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+              <TabsList className="grid w-full grid-cols-2 bg-slate-800/50 border-slate-700">
+                <TabsTrigger 
+                  value="servers" 
+                  className="data-[state=active]:bg-cyan-500 data-[state=active]:text-white"
+                >
+                  <Server className="mr-2 h-4 w-4" />
+                  Mis Servidores
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="banners" 
+                  className="data-[state=active]:bg-cyan-500 data-[state=active]:text-white"
+                >
+                  <ImageIcon className="mr-2 h-4 w-4" />
+                  Banners
+                </TabsTrigger>
+              </TabsList>
 
-              <CardContent>
-                <form onSubmit={handleCreateBanner} className="space-y-6">
-                  
-                  {/* Banner Position */}
-                  <div className="space-y-2">
-                    <Label className="text-slate-300">Seleccionar Banner</Label>
-                    <Select value={formData.position} onValueChange={(value) => setFormData(prev => ({ ...prev, position: value }))}>
-                      <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="bg-slate-700 border-slate-600">
-                        {bannerPositions.map((position) => (
-                          <SelectItem key={position.value} value={position.value} className="text-white">
-                            <div className="flex flex-col">
-                              <span>{position.label}</span>
-                              <span className="text-xs text-slate-400">{position.description} - {position.cost} créditos/día</span>
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {/* Duration */}
-                  <div className="space-y-2">
-                    <Label className="text-slate-300">Duración</Label>
-                    <Select value={formData.duration} onValueChange={(value) => setFormData(prev => ({ ...prev, duration: value }))}>
-                      <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="bg-slate-700 border-slate-600">
-                        {durations.map((duration) => (
-                          <SelectItem key={duration.value} value={duration.value} className="text-white">
-                            {duration.label} (x{duration.multiplier} multiplicador)
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {/* Cost Display */}
-                  <div className="bg-slate-700/50 p-4 rounded-lg border border-slate-600">
-                    <div className="flex justify-between items-center">
-                      <span className="text-slate-300">Costo Total:</span>
-                      <div className="flex items-center space-x-2">
-                        <span className="text-2xl font-bold text-cyan-400">{calculateCost()}</span>
-                        <span className="text-slate-400">créditos</span>
-                      </div>
+              {/* Pestaña de servidores */}
+              <TabsContent value="servers" className="mt-6">
+                {showServerForm ? (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h2 className="text-2xl font-bold text-white">Registrar Nuevo Servidor</h2>
+                      <Button 
+                        onClick={() => setShowServerForm(false)}
+                        variant="outline"
+                        className="border-slate-600 text-slate-300"
+                      >
+                        Cancelar
+                      </Button>
                     </div>
-                    <div className="text-xs text-slate-500 mt-1">
-                      Crédito disponible: {profile.credits} | Crédito después de publicar: {profile.credits - calculateCost()}
-                    </div>
-                  </div>
-
-                  {/* Game Category */}
-                  <div className="space-y-2">
-                    <Label className="text-slate-300">Categoría del Juego</Label>
-                    <Select value={formData.gameCategory} onValueChange={(value) => setFormData(prev => ({ ...prev, gameCategory: value }))}>
-                      <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="bg-slate-700 border-slate-600">
-                        {gameCategories.map((category) => (
-                          <SelectItem key={category.value} value={category.value} className="text-white">
-                            {category.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {/* Title */}
-                  <div className="space-y-2">
-                    <Label className="text-slate-300">Título del Banner</Label>
-                    <Input
-                      value={formData.title}
-                      onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-                      placeholder="Título atractivo para tu banner"
-                      className="bg-slate-700 border-slate-600 text-white"
-                      required
-                    />
-                  </div>
-
-                  {/* Description */}
-                  <div className="space-y-2">
-                    <Label className="text-slate-300">Descripción</Label>
-                    <Textarea
-                      value={formData.description}
-                      onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                      placeholder="Descripción del banner"
-                      className="bg-slate-700 border-slate-600 text-white"
-                      rows={3}
-                    />
-                  </div>
-
-                  {/* Target URL */}
-                  <div className="space-y-2">
-                    <Label className="text-slate-300">URL</Label>
-                    <Input
-                      type="url"
-                      value={formData.targetUrl}
-                      onChange={(e) => setFormData(prev => ({ ...prev, targetUrl: e.target.value }))}
-                      placeholder="https://www.example.com/"
-                      className="bg-slate-700 border-slate-600 text-white"
-                      required
-                    />
-                  </div>
-
-                  {/* Image URL */}
-                  <div className="space-y-2">
-                    <Label className="text-slate-300">Imagen</Label>
-                    <Input
-                      type="url"
-                      value={formData.imageUrl}
-                      onChange={(e) => setFormData(prev => ({ ...prev, imageUrl: e.target.value }))}
-                      placeholder="URL de la imagen del banner"
-                      className="bg-slate-700 border-slate-600 text-white"
-                      required
-                    />
-                    <div className="text-xs text-slate-500">
-                      El tamaño del archivo de imagen no puede exceder 2 MB
-                    </div>
-                  </div>
-
-                  {/* Guidelines */}
-                  <Alert className="bg-blue-900/20 border-blue-500/50">
-                    <Shield className="h-4 w-4 text-blue-400" />
-                    <AlertDescription className="text-blue-300 text-sm">
-                      <div className="space-y-1">
-                        <div>• Crea imágenes simples y elegantes</div>
-                        <div>• No permitimos contenido desnudo o pornografía</div>
-                        <div>• Los banners serán removidos sin posibilidad de publicidad nuevamente</div>
-                      </div>
-                    </AlertDescription>
-                  </Alert>
-
-                  {/* Message */}
-                  {message && (
-                    <Alert className={`${
-                      messageType === 'success' 
-                        ? 'bg-green-900/20 border-green-500/50' 
-                        : messageType === 'error'
-                        ? 'bg-red-900/20 border-red-500/50'
-                        : 'bg-blue-900/20 border-blue-500/50'
-                    }`}>
-                      <AlertDescription className={`${
-                        messageType === 'success' ? 'text-green-300' : 
-                        messageType === 'error' ? 'text-red-300' : 'text-blue-300'
-                      }`}>
-                        {message}
-                      </AlertDescription>
-                    </Alert>
-                  )}
-
-                  {/* Submit Button */}
-                  <Button
-                    type="submit"
-                    disabled={isCreating || profile.credits < calculateCost()}
-                    className="w-full bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 py-3 text-lg font-semibold"
-                  >
-                    {isCreating ? (
-                      <>
-                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                        Creando...
-                      </>
-                    ) : (
-                      <>
-                        <Upload className="mr-2 h-5 w-5" />
-                        Crear Banner ({calculateCost()} créditos)
-                      </>
-                    )}
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Right Column - Banner Diagram & Management */}
-          <div className="col-span-12 lg:col-span-3 space-y-6">
-            
-            {/* Banner Layout Diagram */}
-            <Card className="bg-slate-800/50 border-slate-700">
-              <CardHeader>
-                <CardTitle className="text-white text-sm">Diagrama de Banners</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {/* Top Banner */}
-                <div className="bg-slate-700/50 border border-slate-600 rounded p-2 text-center">
-                  <div className="text-xs text-slate-400 mb-1">Banner Superior (728x90)</div>
-                  <div className="h-8 bg-gradient-to-r from-cyan-500/20 to-blue-500/20 rounded flex items-center justify-center">
-                    <span className="text-xs text-cyan-400">
-                      {banners.filter(b => b.position === 'top' && b.status === 'active').length} activos
-                    </span>
-                  </div>
-                </div>
-
-                {/* Content Area with Sidebar */}
-                <div className="grid grid-cols-3 gap-2">
-                  <div className="col-span-2 bg-slate-700/30 border border-slate-600 rounded p-2 text-center">
-                    <div className="text-xs text-slate-400">Contenido Principal</div>
-                  </div>
-                  <div className="bg-slate-700/50 border border-slate-600 rounded p-2 text-center">
-                    <div className="text-xs text-slate-400 mb-1">Lateral (300x250)</div>
-                    <div className="h-12 bg-gradient-to-r from-green-500/20 to-emerald-500/20 rounded flex items-center justify-center">
-                      <span className="text-xs text-green-400">
-                        {banners.filter(b => b.position === 'sidebar' && b.status === 'active').length}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Bottom Banner */}
-                <div className="bg-slate-700/50 border border-slate-600 rounded p-2 text-center">
-                  <div className="text-xs text-slate-400 mb-1">Banner Inferior (728x90)</div>
-                  <div className="h-8 bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded flex items-center justify-center">
-                    <span className="text-xs text-purple-400">
-                      {banners.filter(b => b.position === 'bottom' && b.status === 'active').length} activos
-                    </span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* My Banners List */}
-            <Card className="bg-slate-800/50 border-slate-700">
-              <CardHeader>
-                <CardTitle className="text-white text-sm">Mis Banners</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {loadingBanners ? (
-                  <div className="flex justify-center py-4">
-                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-cyan-400"></div>
-                  </div>
-                ) : banners.length === 0 ? (
-                  <div className="text-center py-4">
-                    <ImageIcon className="h-8 w-8 text-slate-400 mx-auto mb-2" />
-                    <p className="text-slate-400 text-sm">No tienes banners</p>
+                    <ServerRegistrationForm onSuccess={handleServerSuccess} />
                   </div>
                 ) : (
-                  <div className="space-y-3 max-h-96 overflow-y-auto">
-                    {banners.map((banner) => (
-                      <div key={banner.id} className="bg-slate-700/50 border border-slate-600 rounded p-3">
-                        <div className="flex items-start justify-between mb-2">
-                          <h4 className="text-white text-sm font-medium truncate flex-1">{banner.title}</h4>
-                          <Badge className={`${getStatusColor(banner.status)} text-xs ml-2 flex-shrink-0`}>
-                            {getStatusIcon(banner.status)}
-                            <span className="ml-1">{getStatusText(banner.status)}</span>
-                          </Badge>
-                        </div>
-                        
-                        <div className="space-y-1 text-xs text-slate-400">
-                          <div>Posición: {bannerPositions.find(p => p.value === banner.position)?.label}</div>
-                          <div>Costo: {banner.credits_cost} créditos</div>
-                          <div>Creado: {new Date(banner.created_at).toLocaleDateString('es-ES')}</div>
-                        </div>
+                  <UserServersList 
+                    onCreateServer={handleCreateServer}
+                    onEditServer={handleEditServer}
+                    refreshTrigger={refreshTrigger}
+                  />
+                )}
+              </TabsContent>
 
-                        <div className="flex space-x-1 mt-2">
-                          <Button size="sm" variant="outline" className="border-slate-600 text-slate-300 text-xs px-2 py-1">
-                            <Eye className="h-3 w-3" />
-                          </Button>
-                          <Button size="sm" variant="outline" className="border-slate-600 text-slate-300 text-xs px-2 py-1">
-                            <Edit className="h-3 w-3" />
-                          </Button>
-                          <Button size="sm" variant="outline" className="border-red-600 text-red-400 hover:bg-red-900/20 text-xs px-2 py-1">
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
+              {/* Pestaña de banners */}
+              <TabsContent value="banners" className="mt-6">
+                <Card className="bg-slate-800/50 border-slate-700">
+                  <CardHeader>
+                    <CardTitle className="text-white flex items-center">
+                      <ImageIcon className="mr-3 h-6 w-6 text-cyan-400" />
+                      Sistema de Banners
+                    </CardTitle>
+                    <CardDescription className="text-slate-300">
+                      Crea banners publicitarios para tus servidores registrados
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {userServers.length === 0 ? (
+                      <div className="text-center py-8">
+                        <Server className="h-16 w-16 text-slate-600 mx-auto mb-4" />
+                        <h3 className="text-xl font-semibold text-white mb-2">
+                          Primero registra un servidor
+                        </h3>
+                        <p className="text-slate-400 mb-6">
+                          Necesitas tener al menos un servidor registrado para crear banners publicitarios
+                        </p>
+                        <Button 
+                          onClick={() => setActiveTab('servers')}
+                          className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600"
+                        >
+                          <Plus className="mr-2 h-4 w-4" />
+                          Registrar Primer Servidor
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="text-center py-8">
+                        <ImageIcon className="h-16 w-16 text-slate-600 mx-auto mb-4" />
+                        <h3 className="text-xl font-semibold text-white mb-2">
+                          Sistema de Banners
+                        </h3>
+                        <p className="text-slate-400 mb-6">
+                          Funcionalidad de banners publicitarios vinculada a tus servidores estará disponible próximamente
+                        </p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {userServers.filter(s => s.approved).map(server => (
+                            <Card key={server.id} className="bg-slate-700/50 border-slate-600">
+                              <CardContent className="p-4">
+                                <div className="flex items-center space-x-3">
+                                  <div className="w-12 h-12 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-lg flex items-center justify-center">
+                                    <Server className="h-6 w-6 text-white" />
+                                  </div>
+                                  <div>
+                                    <h4 className="font-semibold text-white">{server.title}</h4>
+                                    <p className="text-sm text-slate-400">
+                                      {server.category?.name} • {server.country}
+                                    </p>
+                                  </div>
+                                </div>
+                                <Button 
+                                  className="w-full mt-3 bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600"
+                                  disabled
+                                >
+                                  <Plus className="mr-2 h-4 w-4" />
+                                  Crear Banner (Próximamente)
+                                </Button>
+                              </CardContent>
+                            </Card>
+                          ))}
                         </div>
                       </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
           </div>
         </div>
       </div>

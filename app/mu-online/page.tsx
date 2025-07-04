@@ -1,63 +1,65 @@
+'use client'
+
 import GameLayout from '@/components/GameLayout';
 import ServerCard from '@/components/ServerCard';
-
-const muServers = [
-  {
-    id: 1,
-    name: 'MU Origin',
-    description: 'Classic MU Online experience with Season 6 features. Join the ultimate MMORPG adventure!',
-    country: 'Brazil',
-    chronicle: 'Season 6',
-    serverType: 'PvP',
-    platform: 'MU',
-    players: 3200,
-    votes: 3200,
-    uptime: '99.9%',
-    exp: 'Exp x100',
-    features: ['Season 6', 'PvP', 'Brazilian'],
-    rank: 1
-  },
-  {
-    id: 2,
-    name: 'MU Legends',
-    description: 'High-rate MU server with balanced gameplay and amazing drop rates. Perfect for fast-paced gaming!',
-    country: 'International',
-    chronicle: 'Season 4',
-    serverType: 'Mixed',
-    platform: 'MU',
-    players: 1850,
-    votes: 1850,
-    uptime: '98.7%',
-    exp: 'Exp x999',
-    features: ['Season 4', 'High Rate', 'International'],
-    rank: 2
-  },
-  {
-    id: 3,
-    name: 'MU Revolution',
-    description: 'New MU Online server with custom features and active administration. Join our growing community!',
-    country: 'Spain',
-    chronicle: 'Season 2',
-    serverType: 'PvE',
-    platform: 'MU',
-    players: 720,
-    votes: 720,
-    uptime: '96.8%',
-    exp: 'Exp x50',
-    features: ['Season 2', 'Custom', 'Spanish'],
-    rank: 3
-  }
-];
+import { useServers } from '@/hooks/useServers';
 
 export default function MuOnlinePage() {
+  const { normalServers, totalServers, loading, error, refetch } = useServers('mu-online');
+
+  if (loading) {
+    return (
+      <GameLayout
+        title="Mu Online"
+        description="Enter the World of MU"
+        totalServers={0}
+        bgImage="https://images.pexels.com/photos/735911/pexels-photo-735911.jpeg"
+      >
+        <div className="flex justify-center items-center min-h-[400px]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+            <p className="text-gray-600 dark:text-gray-400">Cargando servidores...</p>
+          </div>
+        </div>
+      </GameLayout>
+    );
+  }
+
+  if (error) {
+    return (
+      <GameLayout
+        title="Mu Online"
+        description="Enter the World of MU"
+        totalServers={0}
+        bgImage="https://images.pexels.com/photos/735911/pexels-photo-735911.jpeg"
+      >
+        <div className="flex justify-center items-center min-h-[400px]">
+          <div className="text-center">
+            <div className="text-red-500 text-6xl mb-4">⚠️</div>
+            <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-2">
+              Error al cargar servidores
+            </h3>
+            <p className="text-gray-600 dark:text-gray-400 mb-4">{error}</p>
+            <button 
+              onClick={() => refetch()} 
+              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+            >
+              Reintentar
+            </button>
+          </div>
+        </div>
+      </GameLayout>
+    );
+  }
+
   return (
     <GameLayout
       title="Mu Online"
       description="Enter the World of MU"
-      totalServers={165}
+      totalServers={totalServers || 165}
       bgImage="https://images.pexels.com/photos/735911/pexels-photo-735911.jpeg"
     >
-      {muServers.map((server) => (
+      {normalServers.map((server) => (
         <ServerCard key={server.id} server={server} />
       ))}
     </GameLayout>

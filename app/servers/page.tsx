@@ -66,8 +66,8 @@ export default async function ServersPage() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-slate-400 text-sm">Aprobados</p>
-                  <p className="text-2xl font-bold text-white">{stats?.approvedServers || 0}</p>
+                  <p className="text-slate-400 text-sm">Usuarios Activos</p>
+                  <p className="text-2xl font-bold text-white">{stats?.activeUsers || 0}</p>
                 </div>
                 <div className="w-12 h-12 bg-green-500/20 rounded-lg flex items-center justify-center">
                   <Users className="h-6 w-6 text-green-400" />
@@ -94,8 +94,8 @@ export default async function ServersPage() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-slate-400 text-sm">Categorías</p>
-                  <p className="text-2xl font-bold text-white">{stats?.categories || 0}</p>
+                  <p className="text-slate-400 text-sm">Votos Mensuales</p>
+                  <p className="text-2xl font-bold text-white">{stats?.monthlyVotes || 0}</p>
                 </div>
                 <div className="w-12 h-12 bg-orange-500/20 rounded-lg flex items-center justify-center">
                   <ExternalLink className="h-6 w-6 text-orange-400" />
