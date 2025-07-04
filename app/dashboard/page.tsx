@@ -462,36 +462,36 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
         
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-white mb-2">Dashboard</h1>
-          <p className="text-slate-400">Gestiona tus servidores y campañas publicitarias</p>
+        <div className="mb-8 lg:mb-12">
+          <h1 className="text-4xl lg:text-5xl font-bold text-white mb-3">Dashboard</h1>
+          <p className="text-slate-400 text-lg">Gestiona tus servidores y campañas publicitarias</p>
         </div>
 
         {/* Layout con sidebar y contenido principal */}
-        <div className="grid grid-cols-12 gap-8">
+        <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 lg:gap-12">
           
           {/* Sidebar izquierdo - Perfil y estadísticas */}
-          <div className="col-span-12 lg:col-span-3 space-y-6">
+          <div className="xl:col-span-3 space-y-6">
             
             {/* Profile Card */}
             <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-md">
-              <CardHeader className="text-center">
-                <div className="w-20 h-20 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <User className="h-10 w-10 text-white" />
+              <CardHeader className="text-center pb-4">
+                <div className="w-24 h-24 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <User className="h-12 w-12 text-white" />
                 </div>
-                <CardTitle className="text-white">{profile.full_name || 'Usuario'}</CardTitle>
-                <CardDescription className="text-slate-400">{profile.email}</CardDescription>
+                <CardTitle className="text-white text-xl">{profile.full_name || 'Usuario'}</CardTitle>
+                <CardDescription className="text-slate-400 text-sm">{profile.email}</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-6 pt-4">
                 <div className="text-center">
-                  <div className="text-3xl font-bold text-cyan-400 mb-1">{profile.credits}</div>
+                  <div className="text-4xl font-bold text-cyan-400 mb-2">{profile.credits}</div>
                   <div className="text-sm text-slate-400">Créditos disponibles</div>
                 </div>
                 
-                <Button className="w-full bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600">
+                <Button className="w-full bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 py-3">
                   <CreditCard className="mr-2 h-4 w-4" />
                   Comprar Créditos
                 </Button>
@@ -499,51 +499,51 @@ export default function Dashboard() {
             </Card>
 
             {/* Stats Cards */}
-            <div className="space-y-4">
+            <div className="grid grid-cols-2 xl:grid-cols-1 gap-4">
               <Card className="bg-slate-800/50 border-slate-700">
-                <CardContent className="p-4">
+                <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <div className="text-2xl font-bold text-cyan-400">{userServers.length}</div>
-                      <div className="text-xs text-slate-400">Servidores</div>
+                      <div className="text-3xl font-bold text-cyan-400 mb-1">{userServers.length}</div>
+                      <div className="text-sm text-slate-400">Servidores</div>
                     </div>
-                    <Server className="h-8 w-8 text-cyan-400" />
+                    <Server className="h-10 w-10 text-cyan-400" />
                   </div>
                 </CardContent>
               </Card>
 
               <Card className="bg-slate-800/50 border-slate-700">
-                <CardContent className="p-4">
+                <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <div className="text-2xl font-bold text-green-400">{approvedServers}</div>
-                      <div className="text-xs text-slate-400">Aprobados</div>
+                      <div className="text-3xl font-bold text-green-400 mb-1">{approvedServers}</div>
+                      <div className="text-sm text-slate-400">Aprobados</div>
                     </div>
-                    <CheckCircle className="h-8 w-8 text-green-400" />
+                    <CheckCircle className="h-10 w-10 text-green-400" />
                   </div>
                 </CardContent>
               </Card>
 
               <Card className="bg-slate-800/50 border-slate-700">
-                <CardContent className="p-4">
+                <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <div className="text-2xl font-bold text-yellow-400">{activeBanners}</div>
-                      <div className="text-xs text-slate-400">Banners Activos</div>
+                      <div className="text-3xl font-bold text-yellow-400 mb-1">{activeBanners}</div>
+                      <div className="text-sm text-slate-400">Banners Activos</div>
                     </div>
-                    <ImageIcon className="h-8 w-8 text-yellow-400" />
+                    <ImageIcon className="h-10 w-10 text-yellow-400" />
                   </div>
                 </CardContent>
               </Card>
 
               <Card className="bg-slate-800/50 border-slate-700">
-                <CardContent className="p-4">
+                <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <div className="text-2xl font-bold text-purple-400">{totalInvestment}</div>
-                      <div className="text-xs text-slate-400">Inversión Total</div>
+                      <div className="text-3xl font-bold text-purple-400 mb-1">{totalInvestment}</div>
+                      <div className="text-sm text-slate-400">Inversión Total</div>
                     </div>
-                    <TrendingUp className="h-8 w-8 text-purple-400" />
+                    <TrendingUp className="h-10 w-10 text-purple-400" />
                   </div>
                 </CardContent>
               </Card>
@@ -551,7 +551,7 @@ export default function Dashboard() {
           </div>
 
           {/* Contenido principal */}
-          <div className="col-span-12 lg:col-span-9">
+          <div className="xl:col-span-9">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsList className="grid w-full grid-cols-2 bg-slate-800/50 border-slate-700">
                 <TabsTrigger 
@@ -571,15 +571,15 @@ export default function Dashboard() {
               </TabsList>
 
               {/* Pestaña de servidores */}
-              <TabsContent value="servers" className="mt-6">
+              <TabsContent value="servers" className="mt-8">
                 {showServerForm ? (
-                  <div className="space-y-4">
+                  <div className="space-y-6">
                     <div className="flex items-center justify-between">
-                      <h2 className="text-2xl font-bold text-white">Registrar Nuevo Servidor</h2>
+                      <h2 className="text-3xl font-bold text-white">Registrar Nuevo Servidor</h2>
                       <Button 
                         onClick={() => setShowServerForm(false)}
                         variant="outline"
-                        className="border-slate-600 text-slate-300"
+                        className="border-slate-600 text-slate-300 px-6 py-2"
                       >
                         Cancelar
                       </Button>
@@ -596,64 +596,64 @@ export default function Dashboard() {
               </TabsContent>
 
               {/* Pestaña de banners */}
-              <TabsContent value="banners" className="mt-6">
+              <TabsContent value="banners" className="mt-8">
                 <Card className="bg-slate-800/50 border-slate-700">
-                  <CardHeader>
-                    <CardTitle className="text-white flex items-center">
-                      <ImageIcon className="mr-3 h-6 w-6 text-cyan-400" />
+                  <CardHeader className="pb-6">
+                    <CardTitle className="text-white flex items-center text-2xl">
+                      <ImageIcon className="mr-3 h-7 w-7 text-cyan-400" />
                       Sistema de Banners
                     </CardTitle>
-                    <CardDescription className="text-slate-300">
+                    <CardDescription className="text-slate-300 text-base">
                       Crea banners publicitarios para tus servidores registrados
                     </CardDescription>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="pt-6">
                     {userServers.length === 0 ? (
-                      <div className="text-center py-8">
-                        <Server className="h-16 w-16 text-slate-600 mx-auto mb-4" />
-                        <h3 className="text-xl font-semibold text-white mb-2">
+                      <div className="text-center py-12">
+                        <Server className="h-20 w-20 text-slate-600 mx-auto mb-6" />
+                        <h3 className="text-2xl font-semibold text-white mb-4">
                           Primero registra un servidor
                         </h3>
-                        <p className="text-slate-400 mb-6">
+                        <p className="text-slate-400 mb-8 max-w-md mx-auto">
                           Necesitas tener al menos un servidor registrado para crear banners publicitarios
                         </p>
                         <Button 
                           onClick={() => setActiveTab('servers')}
-                          className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600"
+                          className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 px-8 py-3"
                         >
-                          <Plus className="mr-2 h-4 w-4" />
+                          <Plus className="mr-2 h-5 w-5" />
                           Registrar Primer Servidor
                         </Button>
                       </div>
                     ) : (
-                      <div className="text-center py-8">
-                        <ImageIcon className="h-16 w-16 text-slate-600 mx-auto mb-4" />
-                        <h3 className="text-xl font-semibold text-white mb-2">
+                      <div className="text-center py-12">
+                        <ImageIcon className="h-20 w-20 text-slate-600 mx-auto mb-6" />
+                        <h3 className="text-2xl font-semibold text-white mb-4">
                           Sistema de Banners
                         </h3>
-                        <p className="text-slate-400 mb-6">
+                        <p className="text-slate-400 mb-8 max-w-md mx-auto">
                           Funcionalidad de banners publicitarios vinculada a tus servidores estará disponible próximamente
                         </p>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
                           {userServers.filter(s => s.approved).map(server => (
                             <Card key={server.id} className="bg-slate-700/50 border-slate-600">
-                              <CardContent className="p-4">
-                                <div className="flex items-center space-x-3">
-                                  <div className="w-12 h-12 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-lg flex items-center justify-center">
-                                    <Server className="h-6 w-6 text-white" />
+                              <CardContent className="p-6">
+                                <div className="flex items-center space-x-4 mb-4">
+                                  <div className="w-14 h-14 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-lg flex items-center justify-center">
+                                    <Server className="h-7 w-7 text-white" />
                                   </div>
                                   <div>
-                                    <h4 className="font-semibold text-white">{server.title}</h4>
+                                    <h4 className="font-semibold text-white text-lg">{server.title}</h4>
                                     <p className="text-sm text-slate-400">
                                       {server.category?.name} • {server.country}
                                     </p>
                                   </div>
                                 </div>
                                 <Button 
-                                  className="w-full mt-3 bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600"
+                                  className="w-full bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 py-3"
                                   disabled
                                 >
-                                  <Plus className="mr-2 h-4 w-4" />
+                                  <Plus className="mr-2 h-5 w-5" />
                                   Crear Banner (Próximamente)
                                 </Button>
                               </CardContent>
