@@ -45,7 +45,7 @@ interface PendingServer {
     name: string;
     slug: string;
   };
-  source: 'user_server' | 'hardcoded';
+  source: 'user_server' | 'hardcoded' | 'regular_server';
 }
 
 // Función para validar un servidor
@@ -170,6 +170,36 @@ export async function GET(request: NextRequest) {
       }
     } catch (error) {
       console.log('Error fetching user servers (tabla podría no existir):', error);
+    }
+
+    // También obtener servidores pendientes de la tabla 'servers' (si existen)
+    try {
+      const { data: regularServers, error: regularError } = await supabase
+        .from('servers')
+        .select(`
+          *,
+          game_categories(id, name, slug)
+        `)
+        .eq('approved', false)
+        .in('status', ['pending', 'rejected'])
+        .order('created_at', { ascending: false });
+
+      if (!regularError && regularServers) {
+        regularServers.forEach(server => {
+          pendingServers.push({
+            ...server,
+            id: server.id.toString(), // Convertir a string para consistencia
+            source: 'regular_server',
+            category: server.game_categories && Array.isArray(server.game_categories) && server.game_categories[0] ? {
+              id: server.game_categories[0].id,
+              name: server.game_categories[0].name,
+              slug: server.game_categories[0].slug
+            } : undefined
+          });
+        });
+      }
+    } catch (error) {
+      console.log('Error fetching regular servers (tabla podría no existir):', error);
     }
 
     // Validar cada servidor pendiente

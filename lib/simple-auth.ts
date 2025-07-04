@@ -1,4 +1,4 @@
-import { SignJWT, jwtVerify } from 'jose';
+import { SignJWT, jwtVerify, JWTPayload } from 'jose';
 
 // =====================================
 // SISTEMA SIMPLE DE AUTENTICACIÓN
@@ -16,7 +16,7 @@ const JWT_SECRET = new TextEncoder().encode(
 );
 
 // Interfaz para el payload del JWT
-export interface AdminTokenPayload {
+export interface AdminTokenPayload extends JWTPayload {
   username: string;
   role: 'admin';
   loginTime: string;
