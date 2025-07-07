@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServers, getCategories } from '@/lib/database'
 import { supabase } from '@/lib/supabase'
+import { validateServer, logValidationResult, type ServerForValidation } from '@/lib/serverValidation'
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('[API_SERVERS] 🚀 Iniciando creación de servidor vía API');
+    
     const body = await request.json()
+    console.log('[API_SERVERS] Datos recibidos:', body);
     
     // Validaciones básicas
     if (!body.title || !body.ip || !body.category_id) {
@@ -12,6 +16,31 @@ export async function POST(request: NextRequest) {
         error: 'Faltan campos requeridos: title, ip, category_id' 
       }, { status: 400 })
     }
+
+    // ===================================
+    // 1. VALIDAR SERVIDOR ANTES DE CREAR
+    // ===================================
+    const serverForValidation: ServerForValidation = {
+      title: body.title,
+      description: body.description,
+      website: body.website,
+      ip: body.ip,
+      category_id: body.category_id,
+      source: 'regular_servers'
+    };
+
+    const validation = validateServer(serverForValidation);
+    logValidationResult(serverForValidation, validation);
+
+    // ===================================
+    // 2. DETERMINAR ESTADO INICIAL
+    // ===================================
+    const initialStatus = validation.canAutoApprove ? 'online' : 'pending';
+    const isApproved = validation.canAutoApprove;
+
+    console.log(`[API_SERVERS] 🔍 Resultado de validación:`);
+    console.log(`[API_SERVERS] - Score: ${validation.score}%`);
+    console.log(`[API_SERVERS] - Auto-aprobable: ${validation.canAutoApprove ? '✅ SÍ' : '❌ NO'}`);
 
     // Crear slug automáticamente
     const slug = body.title
@@ -21,7 +50,9 @@ export async function POST(request: NextRequest) {
       .replace(/-+/g, '-')
       .trim('-')
 
-    // Insertar servidor (empezará con 0 votos automáticamente)
+    // ===================================
+    // 3. INSERTAR SERVIDOR CON ESTADO APROPIADO
+    // ===================================
     const { data: server, error } = await supabase
       .from('servers')
       .insert({
@@ -34,29 +65,49 @@ export async function POST(request: NextRequest) {
         version: body.version || null,
         experience: body.experience || 1,
         category_id: body.category_id,
-        user_id: body.user_id || null, // En producción, obtener del auth
-        approved: false, // Los nuevos servidores requieren aprobación
-        status: 'pending',
-        premium: false // Los nuevos servidores no son premium por defecto
+        user_id: body.user_id || null,
+        approved: isApproved,  // ← Auto-aprobar si cumple requisitos
+        status: initialStatus, // ← 'online' si auto-aprobado, 'pending' si no
+        premium: false
       })
       .select()
       .single()
 
     if (error) {
-      console.error('Error creating server:', error)
+      console.error('[API_SERVERS] ❌ Error creando servidor:', error)
       return NextResponse.json({ 
-        error: 'Error al crear el servidor' 
+        error: 'Error al crear el servidor',
+        details: error.message
       }, { status: 500 })
+    }
+
+    // ===================================
+    // 4. RESPUESTA CON INFORMACIÓN DE VALIDACIÓN
+    // ===================================
+    const responseMessage = isApproved 
+      ? `¡Servidor aprobado automáticamente! Ya está disponible para votación.`
+      : `Servidor creado pero requiere revisión. Score: ${validation.score}% (necesita ≥80%)`;
+
+    if (isApproved) {
+      console.log(`[API_SERVERS] 🎉 SERVIDOR AUTO-APROBADO: ${body.title}`);
+    } else {
+      console.log(`[API_SERVERS] ⏳ SERVIDOR PENDIENTE: ${body.title} - Score: ${validation.score}%`);
     }
 
     return NextResponse.json({
       success: true,
-      message: 'Servidor creado exitosamente. Pendiente de aprobación.',
-      server
+      message: responseMessage,
+      server,
+      validation: {
+        score: validation.score,
+        autoApproved: isApproved,
+        issues: validation.issues,
+        recommendations: validation.recommendations
+      }
     })
 
   } catch (error) {
-    console.error('Error in server creation:', error)
+    console.error('[API_SERVERS] ❌ Error general:', error)
     return NextResponse.json({ 
       error: 'Error interno del servidor' 
     }, { status: 500 })
@@ -75,7 +126,7 @@ export async function GET(request: NextRequest) {
     let categoryId = null
     if (category && category !== 'all') {
       const { data: categoryData, error: categoryError } = await supabase
-        .from('game_categories')
+        .from('server_categories')
         .select('id')
         .eq('slug', category)
         .single()
@@ -89,16 +140,17 @@ export async function GET(request: NextRequest) {
       console.log('Found category ID:', categoryId)
     }
     
-    // Construir la query base para servidores
-    let serversQuery = supabase
-      .from('servers')
+    // ========================================
+    // OBTENER SOLO SERVIDORES DE USUARIOS APROBADOS (REMOVER HARDCODEADOS)
+    // ========================================
+    let userServersQuery = supabase
+      .from('user_servers')
       .select(`
         id,
         title,
         slug,
         description,
         website,
-        ip,
         country,
         version,
         experience,
@@ -106,60 +158,60 @@ export async function GET(request: NextRequest) {
         status,
         created_at,
         category_id,
-        game_categories(name, slug)
+        server_categories(name, slug)
       `)
       .eq('approved', true)
       .eq('status', 'online')
-      .order('premium', { ascending: false })
-      .limit(limit)
 
     // Filtrar por categoría si se especifica
     if (categoryId) {
-      serversQuery = serversQuery.eq('category_id', categoryId)
+      userServersQuery = userServersQuery.eq('category_id', categoryId)
     }
 
-    const { data: servers, error: serversError } = await serversQuery
+    const { data: userServers, error: userServersError } = await userServersQuery
     
-    console.log('Servers query result:', { 
-      serversCount: servers?.length || 0, 
-      error: serversError 
+    console.log('User servers query result:', { 
+      count: userServers?.length || 0, 
+      error: userServersError 
     })
 
-    if (serversError) {
-      console.error('Error fetching servers:', serversError)
-      return NextResponse.json({ error: 'Error al obtener servidores' }, { status: 500 })
+    // ========================================
+    // USAR SOLO SERVIDORES DE USUARIOS REALES
+    // ========================================
+    const allServers = (userServers || []).map(server => ({
+      ...server,
+      source: 'user_server' as const,
+      ip: '' // user_servers no tiene IP
+    }));
+
+    console.log('Real servers loaded:', {
+      userServers: userServers?.length || 0,
+      total: allServers.length
+    })
+
+    if (allServers.length === 0) {
+      return NextResponse.json({ 
+        success: true,
+        servers: [],
+        premiumServers: [],
+        normalServers: [],
+        total: 0,
+        stats: {
+          totalServers: 0,
+          premiumCount: 0,
+          totalVotes: 0
+        }
+      })
     }
 
-    if (!servers || servers.length === 0) {
-      return NextResponse.json({ servers: [] })
-    }
-
-    // Obtener estadísticas de votos reales para el mes actual
-    const currentYear = new Date().getFullYear()
-    const currentMonth = new Date().getMonth() + 1
-    
-    const serverIds = servers.map(s => s.id)
-    
-    // Usar la tabla correcta de estadísticas de votos
-    const { data: voteStats, error: voteError } = await supabase
-      .from('server_vote_stats')
-      .select('server_id, total_votes, unique_ips')
-      .in('server_id', serverIds)
-      .eq('year', currentYear)
-      .eq('month', currentMonth)
-
-    if (voteError) {
-      console.error('Error fetching vote stats:', voteError)
-      // Continuar sin votos si hay error
-    }
-
-    // Combinar datos de servidores con estadísticas de votos reales
-    const serversWithVotes = await Promise.all(servers.map(async server => {
+    // ========================================
+    // PROCESAR SERVIDORES CON VOTOS REALES
+    // ========================================
+    const serversWithVotes = await Promise.all(allServers.slice(0, limit).map(async server => {
       // Obtener votos reales usando la función de Supabase
       const { data: realVotes, error: voteCountError } = await supabase
         .rpc('get_server_vote_count', {
           p_server_id: server.id.toString(),
-          p_server_type: 'hardcoded'
         })
 
       if (voteCountError) {
@@ -186,14 +238,21 @@ export async function GET(request: NextRequest) {
         isPremium: server.premium || false,
         website: server.website,
         ip: server.ip,
-        category: server.game_categories?.[0]?.name || 'Lineage 2',
+        category: server.server_categories?.[0]?.name || 'Lineage 2',
         slug: server.slug,
-        created_at: server.created_at
+        created_at: server.created_at,
+        source: server.source
       }
     }))
 
-    // Ordenar por votos descendente y asignar ranking
-    serversWithVotes.sort((a, b) => b.votes - a.votes)
+    // Ordenar por premium primero, luego por votos descendente
+    serversWithVotes.sort((a, b) => {
+      if (a.isPremium && !b.isPremium) return -1
+      if (!a.isPremium && b.isPremium) return 1
+      return b.votes - a.votes
+    })
+
+    // Asignar ranking
     serversWithVotes.forEach((server, index) => {
       server.rank = index + 1
     })
@@ -201,6 +260,12 @@ export async function GET(request: NextRequest) {
     // Separar servidores premium y normales
     const premiumServers = serversWithVotes.filter(s => s.isPremium)
     const normalServers = serversWithVotes.filter(s => !s.isPremium)
+
+    console.log('Final result:', {
+      total: serversWithVotes.length,
+      premium: premiumServers.length,
+      normal: normalServers.length
+    })
 
     return NextResponse.json({
       success: true,

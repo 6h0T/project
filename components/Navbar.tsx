@@ -149,6 +149,14 @@ export default function Navbar() {
                           Dashboard
                         </Link>
                         <Link 
+                          href="/buy-credits" 
+                          className="flex items-center px-3 py-2 text-sm text-yellow-300 hover:text-yellow-200 hover:bg-yellow-500/10 rounded-md transition-colors cursor-pointer"
+                          onClick={() => setDropdownOpen(false)}
+                        >
+                          <Zap className="mr-2 h-4 w-4" />
+                          Comprar Créditos
+                        </Link>
+                        <Link 
                           href="/dashboard" 
                           className="flex items-center px-3 py-2 text-sm text-slate-300 hover:text-white hover:bg-white/10 rounded-md transition-colors cursor-pointer"
                           onClick={() => setDropdownOpen(false)}

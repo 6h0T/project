@@ -1,236 +1,130 @@
 'use client';
 
-import Link from 'next/link';
-import { Star, TrendingUp, Clock, Shield, Vote, Crown, ExternalLink } from 'lucide-react';
+import React from 'react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import Link from 'next/link';
+import { ExternalLink, Users, Crown, Star, TrendingUp, Globe, Clock } from 'lucide-react';
 import CountryFlag from './CountryFlag';
 
-interface ServerProps {
-  id: number;
-  name: string;
-  description: string;
-  country: string;
-  chronicle: string;
-  serverType: string;
-  platform: string;
-  players: number;
-  votes: number;
-  uptime: string;
-  exp: string;
-  features: string[];
-  rank: number | string;
-  isPremium?: boolean;
+interface Server {
+  id: number | string;
+  title: string;
+  slug: string;
+  description: string | null;
+  website: string | null;
+  country: string | null;
+  version: string | null;
+  experience: number | null;
+  premium: boolean;
+  approved: boolean;
+  votes?: number;
+  category?: {
+    id: number;
+    name: string;
+    slug: string;
+  };
+  _count?: {
+    votes: number;
+  };
 }
 
-export default function ServerCard({ server }: { server: ServerProps }) {
-  const getChronicleColor = (chronicle: string) => {
-    const colors: { [key: string]: string } = {
-      'Interlude': 'bg-blue-500',
-      'High Five': 'bg-purple-500',
-      'Classic': 'bg-green-500',
-      'Gracia': 'bg-orange-500',
-      'Freya': 'bg-pink-500',
-      'Season 6': 'bg-red-500',
-      'Season 4': 'bg-indigo-500',
-      'Season 2': 'bg-yellow-500',
-      'TBC': 'bg-emerald-500',
-      'WotLK': 'bg-cyan-500',
-      'Vanilla': 'bg-amber-500',
-      'Rising Tide': 'bg-violet-500',
-      'Genesis': 'bg-rose-500',
-      'CS 1.6': 'bg-slate-500',
-      'CS Source': 'bg-zinc-500',
-      'CS:GO': 'bg-neutral-500',
-    };
-    return colors[chronicle] || 'bg-gray-500';
-  };
+interface ServerCardProps {
+  server: Server;
+  index?: number;
+  rank?: number;
+}
 
-  // URLs de ejemplo para servidores premium
-  const getPremiumServerUrl = (serverId: number) => {
-    const urls: { [key: number]: string } = {
-      101: 'https://l2premium-elite.com',
-      102: 'https://legends-premium.com', 
-      103: 'https://royal-premium.com'
-    };
-    return urls[serverId] || '#';
-  };
-
-  // Determinar el estilo de la card según si es premium o no - MÁS COMPACTO
-  const cardStyle = server.isPremium 
-    ? "bg-gradient-to-br from-yellow-900/30 via-slate-800/50 to-orange-900/30 backdrop-blur-md border-2 border-yellow-500/50 rounded-lg p-4 hover:bg-gradient-to-br hover:from-yellow-900/40 hover:via-slate-800/60 hover:to-orange-900/40 transition-all duration-300 hover:transform hover:scale-[1.01] hover:shadow-xl hover:shadow-yellow-500/20 cursor-pointer"
-    : "bg-slate-800/50 backdrop-blur-md border border-slate-700/50 rounded-lg p-4 hover:bg-slate-800/70 transition-all duration-300 hover:transform hover:scale-[1.01] hover:shadow-lg hover:shadow-cyan-500/10 cursor-pointer";
-
+export default function ServerCard({ server, index = 0, rank }: ServerCardProps) {
+  const rankPosition = rank || index + 1;
+  
   return (
-    <Link href={`/vote/${server.id}`} className="block">
-      <div className={cardStyle}>
-        
-        {/* Efecto de brillo para servidores premium */}
-        {server.isPremium && (
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-yellow-500/10 to-transparent animate-pulse"></div>
-        )}
-        
-        {/* Contenedor principal con dos columnas - MÁS COMPACTO */}
-        <div className="grid grid-cols-12 gap-4 h-full relative z-10">
+    <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-md hover:bg-slate-800/70 transition-all duration-300">
+      <CardContent className="p-4">
+        <div className="flex items-center space-x-4">
           
-          {/* Columna izquierda - Información del servidor (8 columnas) */}
-          <div className="col-span-8 flex flex-col">
+          {/* Número de ranking circular */}
+          <div className="flex-shrink-0">
+            <div className="w-12 h-12 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full flex items-center justify-center text-white font-bold text-lg">
+              {rankPosition}
+            </div>
+          </div>
+          
+          {/* Información principal del servidor */}
+          <div className="flex-1 min-w-0">
             
-            {/* Header con ranking y nombre - COMPACTO */}
-            <div className="flex items-center space-x-2 mb-3">
-              {server.isPremium ? (
-                <div className="w-8 h-8 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-lg flex items-center justify-center text-white font-bold text-xs shadow-lg shadow-yellow-500/30">
-                  <Crown className="h-4 w-4" />
-                </div>
-              ) : (
-                <div className="w-6 h-6 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-md flex items-center justify-center text-white font-bold text-xs">
-                  {server.rank}
-                </div>
+            {/* Título y badges */}
+            <div className="flex items-center space-x-2 mb-2">
+              <h3 className="text-xl font-bold text-white truncate">{server.title}</h3>
+              {server.version && (
+                <Badge className="bg-blue-600/20 text-blue-400 border-blue-500/30 text-xs">
+                  {server.version}
+                </Badge>
               )}
-              
-              <div className="flex-1 min-w-0">
-                {/* Nombre del servidor con versión y experiencia en la misma línea - COMPACTO */}
-                <div className="flex items-center space-x-2 mb-1">
-                  <h3 className={`text-base font-bold truncate ${server.isPremium ? 'text-yellow-100' : 'text-white'}`}>
-                    {server.name}
-                  </h3>
-                  
-                  {/* Versión/Crónica - COMPACTO */}
-                  <span className={`px-1.5 py-0.5 rounded text-xs text-white font-medium ${getChronicleColor(server.chronicle)} flex-shrink-0`}>
-                    {server.chronicle}
-                  </span>
-                  
-                  {/* Experiencia con efecto glow dorado - COMPACTO */}
-                  <div className="flex items-center space-x-1 flex-shrink-0">
-                    <Star className={`h-3 w-3 ${server.isPremium ? 'text-yellow-300' : 'text-yellow-400'}`} />
-                    <span 
-                      className={`font-semibold text-xs ${server.isPremium ? 'text-yellow-300' : 'text-yellow-400'}`}
-                      style={{
-                        textShadow: `
-                          0 0 5px rgba(255, 215, 0, 0.8),
-                          0 0 10px rgba(255, 215, 0, 0.6)
-                        `
-                      }}
-                    >
-                      {server.exp}
-                    </span>
-                  </div>
-                </div>
-                
-                {/* Bandera del país junto con características secundarias - COMPACTO */}
-                <div className="flex items-center space-x-2 mb-1">
-                  <CountryFlag country={server.country} size="sm" />
-                  <span className={`text-xs ${server.isPremium ? 'text-yellow-200' : 'text-slate-400'}`}>
-                    {server.country}
-                  </span>
-                  
-                  {/* Características secundarias - LIMITADAS */}
-                  {server.features.slice(0, 2).map((feature, index) => (
-                    <span
-                      key={index}
-                      className={`px-1.5 py-0.5 text-xs rounded border ${
-                        server.isPremium 
-                          ? 'bg-yellow-900/30 text-yellow-200 border-yellow-600/50' 
-                          : 'bg-slate-700/50 text-slate-300 border-slate-600'
-                      }`}
-                    >
-                      {feature}
-                    </span>
-                  ))}
-                </div>
-
-                {/* Uptime - COMPACTO */}
-                <div className={`flex items-center space-x-1 text-xs ${server.isPremium ? 'text-yellow-200' : 'text-slate-400'}`}>
-                  <Clock className="h-3 w-3" />
-                  <span>{server.uptime} uptime</span>
-                </div>
-              </div>
+              {server.experience && (
+                <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30 text-xs">
+                  Exp x{server.experience}
+                </Badge>
+              )}
             </div>
-
-            {/* Descripción del servidor - COMPACTA */}
-            <div className="flex-1 mb-2">
-              <p className={`text-xs leading-relaxed line-clamp-2 ${server.isPremium ? 'text-yellow-100' : 'text-slate-300'}`}>
-                {server.description}
-              </p>
-            </div>
-
-            {/* Footer con información técnica - COMPACTO */}
-            <div className={`flex items-center justify-between pt-2 border-t ${server.isPremium ? 'border-yellow-700/50' : 'border-slate-700'}`}>
-              <div className="flex items-center space-x-3">
-                <span className={`text-xs ${server.isPremium ? 'text-yellow-200' : 'text-slate-400'}`}>
-                  {server.serverType}
-                </span>
-                <span className={`text-xs ${server.isPremium ? 'text-yellow-200' : 'text-slate-400'}`}>
-                  {server.platform}
-                </span>
-              </div>
-              
+            
+            {/* País y tipo */}
+            <div className="flex items-center space-x-3 mb-2">
               <div className="flex items-center space-x-1">
-                <Shield className={`h-3 w-3 ${server.isPremium ? 'text-yellow-400' : 'text-green-400'}`} />
-                <span className={`text-xs ${server.isPremium ? 'text-yellow-400' : 'text-green-400'}`}>
-                  Online
-                </span>
+                <CountryFlag country={server.country || 'International'} size="sm" />
+                <span className="text-slate-300 text-sm">{server.country}</span>
+              </div>
+              <span className="text-slate-400 text-sm">Normal</span>
+            </div>
+            
+            {/* Uptime */}
+            <div className="flex items-center space-x-1 mb-3">
+              <Clock className="h-4 w-4 text-slate-400" />
+              <span className="text-slate-300 text-sm">99.5% uptime</span>
+            </div>
+            
+            {/* Descripción */}
+            <p className="text-slate-300 text-sm line-clamp-2 mb-3">
+              {server.description || 'Sin descripción disponible'}
+            </p>
+            
+            {/* Información adicional */}
+            <div className="flex items-center space-x-4 text-sm">
+              <div className="flex items-center space-x-1">
+                <span className="text-slate-400">PvP</span>
+              </div>
+              <div className="flex items-center space-x-1">
+                <span className="text-slate-400">{server.category?.name || 'L2J'}</span>
+              </div>
+              <div className="flex items-center space-x-1">
+                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                <span className="text-green-400 text-sm">Online</span>
               </div>
             </div>
           </div>
-
-          {/* Columna derecha - Sistema de votación/enlace (4 columnas) - COMPACTA */}
-          <div className="col-span-4 flex flex-col justify-center items-center space-y-2">
-            {/* Contador de votos - COMPACTO */}
-            <div className="text-center">
-              <div className="flex items-center justify-center space-x-1 mb-1">
-                <TrendingUp className={`h-4 w-4 ${server.isPremium ? 'text-yellow-400' : 'text-cyan-400'}`} />
-                <span className={`text-xs ${server.isPremium ? 'text-yellow-200' : 'text-slate-400'}`}>
-                  votos
-                </span>
-              </div>
-              <div className={`text-xl font-bold mb-1 ${server.isPremium ? 'text-yellow-400' : 'text-cyan-400'}`}>
-                {server.votes}
-              </div>
-              <div className={`text-xs ${server.isPremium ? 'text-yellow-300' : 'text-slate-500'}`}>
-                este mes
-              </div>
+          
+          {/* Panel lateral derecho - Votación */}
+          <div className="flex-shrink-0 text-center border-l border-slate-600 pl-4">
+            <div className="flex items-center text-cyan-400 mb-1">
+              <TrendingUp className="h-4 w-4 mr-1" />
+              <span className="text-sm">votos</span>
             </div>
-
-            {/* Acción principal - Votar (se activa al hacer click en la tarjeta) */}
-            <div className="text-center">
-              <div className={`flex items-center justify-center space-x-1 mb-1 ${server.isPremium ? 'text-yellow-300' : 'text-cyan-400'}`}>
-                <Vote className="h-4 w-4" />
-                <span className="text-xs font-medium">
-                  Clic para votar
-                </span>
-              </div>
+            <div className="text-2xl font-bold text-cyan-400 mb-2">
+              {server.votes || server._count?.votes || 0}
             </div>
-
-            {/* Botón secundario para servidores premium - Enlace directo */}
-            {server.isPremium && (
-              <Button 
-                asChild
-                size="sm"
-                className="w-full font-bold py-2 shadow-lg transition-all duration-300 bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white hover:shadow-yellow-500/30 text-xs"
-                onClick={(e) => e.stopPropagation()} // Evitar que se active el link de la tarjeta
-              >
-                <a 
-                  href={getPremiumServerUrl(server.id)} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                >
-                  <ExternalLink className="mr-1 h-3 w-3" />
-                  🌐 JUGAR
-                </a>
-              </Button>
-            )}
-
-            {/* Información adicional - COMPACTA */}
-            <div className={`text-xs text-center ${server.isPremium ? 'text-yellow-300' : 'text-slate-500'}`}>
-              {server.isPremium ? (
-                <p>Web disponible</p>
-              ) : (
-                <p>Ir a votar</p>
-              )}
-            </div>
+            <div className="text-xs text-slate-400 mb-3">este mes</div>
+            
+            <Button asChild size="sm" className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 w-full mb-2">
+              <Link href={`/vote/${server.id}`}>
+                Clic para votar
+              </Link>
+            </Button>
+            
+            <div className="text-xs text-slate-400">Ir a votar</div>
           </div>
         </div>
-      </div>
-    </Link>
+      </CardContent>
+    </Card>
   );
 }

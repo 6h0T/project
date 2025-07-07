@@ -1,22 +1,16 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
 import { 
+  ArrowLeft, 
   TrendingUp, 
-  CheckCircle, 
-  Loader2, 
-  Clock, 
-  Shield, 
-  Users, 
-  ArrowLeft,
-  Globe,
+  Users,
+  Clock,
   MapPin,
   Star,
   ExternalLink,
@@ -164,13 +158,27 @@ export default function VotePage({ server, onOpenAuth }: VotePageProps) {
         body.expectedCaptcha = captchaQuestion
       }
 
+      console.log('[CLIENT] Enviando voto con body:', body)
+      
       const response = await fetch(`/api/servers/${server.id}/vote`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
       })
 
-      const data = await response.json()
+      console.log('[CLIENT] Response status:', response.status)
+      console.log('[CLIENT] Response headers:', response.headers)
+      
+      const responseText = await response.text()
+      console.log('[CLIENT] Response text:', responseText)
+      
+      let data
+      try {
+        data = JSON.parse(responseText)
+      } catch (e) {
+        console.error('[CLIENT] Failed to parse JSON:', e)
+        data = { error: responseText }
+      }
 
       if (response.ok) {
         setMessage(data.message)
@@ -320,20 +328,13 @@ export default function VotePage({ server, onOpenAuth }: VotePageProps) {
                     <div className="text-xs text-slate-400">votos</div>
                   </div>
 
-                  {server.website ? (
+                  {server.website && (
                     <Button asChild size="sm" className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 h-8 text-xs">
                       <a href={server.website} target="_blank" rel="noopener noreferrer">
                         <ExternalLink className="mr-1 h-3 w-3" />
                         Web
                       </a>
                     </Button>
-                  ) : (
-                    <div className="text-right">
-                      <div className="text-xs text-slate-400 mb-1">IP del servidor</div>
-                      <div className="font-mono text-cyan-400 bg-slate-700/50 px-2 py-1 rounded text-xs">
-                        {server.ip}
-                      </div>
-                    </div>
                   )}
                 </div>
               </div>
@@ -358,148 +359,131 @@ export default function VotePage({ server, onOpenAuth }: VotePageProps) {
                 </div>
               </CardHeader>
 
-              <CardContent className="space-y-6 px-8">
-                {/* Mensaje de resultado */}
-                {message && (
-                  <Alert className={`${
-                    messageType === 'success' 
-                      ? 'bg-green-900/20 border-green-500/50' 
-                      : messageType === 'error'
-                      ? 'bg-red-900/20 border-red-500/50'
-                      : 'bg-blue-900/20 border-blue-500/50'
-                  }`}>
-                    <AlertDescription className={`text-center ${
-                      messageType === 'success' ? 'text-green-300' : 
-                      messageType === 'error' ? 'text-red-300' : 'text-blue-300'
-                    }`}>
-                      {message}
-                    </AlertDescription>
-                  </Alert>
-                )}
-
-                {/* Tiempo restante */}
-                {voteStatus.timeLeft && (voteStatus.timeLeft.hours > 0 || voteStatus.timeLeft.minutes > 0) && (
-                  <Alert className="bg-yellow-900/20 border-yellow-500/50">
-                    <Clock className="h-4 w-4 text-yellow-400" />
-                    <AlertDescription className="text-yellow-300 text-center">
-                      <span className="font-semibold block">Ya has votado por este servidor</span>
-                      <span className="text-sm block">
-                        Podrás votar nuevamente en: <span className="font-mono">{voteStatus.timeLeft.hours}h {voteStatus.timeLeft.minutes}m</span>
-                      </span>
-                    </AlertDescription>
-                  </Alert>
-                )}
-
-                {/* Captcha para usuarios no logueados */}
-                {showCaptcha && (
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-center">
-                    <div className="bg-slate-700/50 p-4 rounded-lg border border-slate-600">
-                      <Label className="text-slate-300 text-sm font-medium block text-center mb-2">
-                        Código de verificación:
-                      </Label>
-                      <div className="bg-slate-600 p-4 rounded text-center">
-                        <span className="font-mono text-2xl tracking-widest text-white font-bold">
-                          {captchaQuestion}
-                        </span>
+              <CardContent className="flex-1 flex flex-col justify-center">
+                {/* Estado de votación */}
+                <div className="mb-8 text-center">
+                  {voteStatus.canVote ? (
+                    <div className="space-y-4">
+                      <div className="text-lg text-green-400 font-medium">
+                        ✅ Puedes votar por este servidor
                       </div>
-                    </div>
-                    <div className="space-y-3">
-                      <Input
-                        type="text"
-                        value={captcha}
-                        onChange={(e) => setCaptcha(e.target.value.toUpperCase())}
-                        placeholder="Introduce el código"
-                        className="bg-slate-700 border-slate-600 text-white text-center font-mono text-lg h-12"
-                        maxLength={5}
-                        disabled={loading}
-                      />
                       
-                      {/* Card con información de registro y botón - CON GLOW AZUL */}
-                      <Alert 
-                        className="bg-blue-900/20 border-blue-500/50 relative"
-                        style={{
-                          boxShadow: `
-                            0 0 20px rgba(59, 130, 246, 0.3),
-                            0 0 40px rgba(59, 130, 246, 0.2),
-                            0 0 60px rgba(59, 130, 246, 0.1)
-                          `
-                        }}
-                      >
-                        <Shield className="h-4 w-4 text-blue-400" />
-                        <div className="text-blue-300 text-sm">
-                          <div className="flex flex-col space-y-3">
-                            <div className="text-sm text-center">
-                              Los usuarios registrados no necesitan captcha
+                      {/* Captcha para usuarios no logueados */}
+                      {showCaptcha && (
+                        <div className="max-w-md mx-auto space-y-3">
+                          <div className="text-sm text-slate-300 mb-2">
+                            Completa el captcha para continuar:
+                          </div>
+                          <div className="bg-slate-700/50 p-4 rounded-lg border border-slate-600">
+                            <div className="text-lg font-mono text-cyan-400 mb-3 text-center">
+                              {captchaQuestion}
                             </div>
-                            
-                            <Button
-                              onClick={handleRegisterClick}
-                              variant="outline"
-                              size="sm"
-                              className="w-full border-blue-500/50 text-blue-300 hover:bg-blue-900/30 hover:text-blue-200 hover:border-blue-400/70 transition-all duration-300"
-                            >
-                              <UserPlus className="mr-2 h-4 w-4" />
-                              Registrarse Ahora
-                            </Button>
+                            <Input
+                              type="text"
+                              placeholder="Respuesta..."
+                              value={captcha}
+                              onChange={(e) => setCaptcha(e.target.value)}
+                              className="text-center bg-slate-800 border-slate-600 text-white"
+                            />
                           </div>
                         </div>
-                      </Alert>
-                    </div>
-                  </div>
-                )}
-
-                {/* Información del usuario */}
-                <div className="text-center text-slate-400">
-                  {user ? (
-                    <p>Conectado como <span className="text-cyan-400 font-medium">{user.email}</span></p>
-                  ) : (
-                    <p>
-                      <button 
-                        onClick={handleRegisterClick}
-                        className="text-cyan-400 hover:text-cyan-300 underline cursor-pointer transition-colors"
+                      )}
+                      
+                      {/* Botón de votación */}
+                      <Button 
+                        onClick={handleVote} 
+                        disabled={loading || (showCaptcha && !captcha)}
+                        className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-bold py-4 px-8 text-lg rounded-xl shadow-lg hover:shadow-green-500/30 transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                       >
-                        Regístrate
-                      </button> para votar sin captcha y obtener beneficios adicionales
-                    </p>
+                        {loading ? (
+                          <div className="flex items-center space-x-2">
+                            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                            <span>Votando...</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center space-x-2">
+                            <TrendingUp className="h-6 w-6" />
+                            <span>¡VOTAR AHORA!</span>
+                          </div>
+                        )}
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <div className="text-lg text-orange-400 font-medium">
+                        ⏳ {voteStatus.message}
+                      </div>
+                      
+                      {voteStatus.timeLeft && (
+                        <div className="bg-slate-700/50 p-4 rounded-lg border border-slate-600">
+                          <div className="text-slate-300 text-sm mb-2">
+                            Tiempo restante para votar nuevamente:
+                          </div>
+                          <div className="text-2xl font-bold text-cyan-400">
+                            {voteStatus.timeLeft.hours}h {voteStatus.timeLeft.minutes}m
+                          </div>
+                        </div>
+                      )}
+                      
+                      {!user && (
+                        <div className="bg-blue-900/20 border border-blue-500/30 rounded-lg p-4">
+                          <h3 className="text-blue-400 font-medium mb-2">
+                            💡 ¿Sabías que...?
+                          </h3>
+                          <p className="text-blue-200 text-sm mb-3">
+                            Los usuarios registrados pueden votar más fácilmente y obtener beneficios adicionales.
+                          </p>
+                          <Button
+                            onClick={handleRegisterClick}
+                            variant="outline"
+                            size="sm"
+                            className="border-blue-500 text-blue-400 hover:bg-blue-500/10"
+                          >
+                            Registrarse gratis
+                          </Button>
+                        </div>
+                      )}
+                    </div>
                   )}
                 </div>
 
-                {/* Botón de votación */}
-                <div className="max-w-3xl mx-auto">
-                  <Button
-                    onClick={handleVote}
-                    disabled={loading || !voteStatus.canVote || (showCaptcha && captcha.length < 5)}
-                    className={`w-full py-4 text-xl font-bold transition-all duration-300 ${
-                      loading || !voteStatus.canVote || (showCaptcha && captcha.length < 5)
-                        ? 'bg-slate-600 text-slate-400 cursor-not-allowed'
-                        : 'bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white shadow-lg hover:shadow-cyan-500/30'
-                    }`}
-                  >
-                    {loading ? (
-                      <>
-                        <Loader2 className="mr-3 h-6 w-6 animate-spin" />
-                        Procesando voto...
-                      </>
-                    ) : !voteStatus.canVote ? (
-                      <>
-                        <CheckCircle className="mr-3 h-6 w-6" />
-                        Ya has votado
-                      </>
-                    ) : (
-                      <>
-                        <TrendingUp className="mr-3 h-6 w-6" />
-                        🗳️ VOTAR AHORA
-                      </>
-                    )}
-                  </Button>
-                </div>
+                {/* Mensaje de resultado */}
+                {message && (
+                  <div className={`p-4 rounded-lg border text-center mb-6 ${
+                    messageType === 'success' 
+                      ? 'bg-green-900/20 border-green-500/30 text-green-400' 
+                      : 'bg-red-900/20 border-red-500/30 text-red-400'
+                  }`}>
+                    {message}
+                  </div>
+                )}
 
-                {/* Información adicional */}
-                <div className="text-xs text-slate-500 text-center space-y-1 pt-4 border-t border-slate-700">
-                  <div className="flex justify-center space-x-6">
-                    <span>• Un voto por IP cada 12 horas</span>
-                    <span>• Los votos se contabilizan mensualmente</span>
-                    <span>• Cada voto suma +1 al ranking</span>
+                {/* Información adicional del servidor */}
+                <div className="bg-slate-700/30 rounded-lg p-4 border border-slate-600">
+                  <h3 className="text-white font-medium mb-3 flex items-center">
+                    <Star className="mr-2 h-4 w-4 text-yellow-400" />
+                    Información del Servidor
+                  </h3>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <span className="text-slate-400">Descripción:</span>
+                      <p className="text-slate-200 mt-1">{server.description || 'Sin descripción disponible'}</p>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      {server.maxLevel && (
+                        <div>
+                          <span className="text-slate-400">Nivel máximo:</span>
+                          <p className="text-slate-200">{server.maxLevel}</p>
+                        </div>
+                      )}
+                      
+                      <div>
+                        <span className="text-slate-400">Total de votos:</span>
+                        <p className="text-cyan-400 font-bold">{voteStatus.totalVotes}</p>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </CardContent>

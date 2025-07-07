@@ -41,14 +41,38 @@ function validateCaptcha(userInput: string, expected: string): boolean {
 // Función REAL para registrar voto
 async function registerVote(serverId: string, clientIP: string, userAgent: string, country: string, userId?: string) {
   try {
+    console.log(`[REGISTER_VOTE] Iniciando para servidor ${serverId}`)
+    console.log(`[REGISTER_VOTE] Parámetros:`, { serverId, clientIP, userAgent, country, userId })
+    
     // Verificar que el servidor existe y está aprobado
     const { data: server, error: serverError } = await getAnyServerById(serverId)
     
-    if (serverError || !server || !server.approved) {
+    console.log(`[REGISTER_VOTE] Resultado de getAnyServerById:`, { server: !!server, error: !!serverError })
+    
+    if (serverError) {
+      console.error('[REGISTER_VOTE] Error obteniendo servidor:', serverError)
       return {
         success: false,
-        error: 'Servidor no encontrado o no aprobado',
-        message: 'Este servidor no existe o no está disponible para votación'
+        error: 'Error al buscar servidor',
+        message: 'No se pudo verificar la existencia del servidor'
+      }
+    }
+    
+    if (!server) {
+      console.error('[REGISTER_VOTE] Servidor no encontrado')
+      return {
+        success: false,
+        error: 'Servidor no encontrado',
+        message: 'Este servidor no existe'
+      }
+    }
+    
+    if (!server.approved) {
+      console.error('[REGISTER_VOTE] Servidor no aprobado')
+      return {
+        success: false,
+        error: 'Servidor no aprobado',
+        message: 'Este servidor no está disponible para votación'
       }
     }
 
@@ -59,71 +83,134 @@ async function registerVote(serverId: string, clientIP: string, userAgent: strin
     } else if (server.source === 'user_server') {
       serverType = 'user_server'
     }
+    
+    console.log(`[REGISTER_VOTE] Tipo de servidor determinado: ${serverType}`)
+
+    // Validar y formatear parámetros
+    let formattedUserId = null
+    if (userId) {
+      // Verificar que sea un UUID válido
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+      if (uuidRegex.test(userId)) {
+        formattedUserId = userId
+      } else {
+        console.log(`[REGISTER_VOTE] userId inválido, usando null:`, userId)
+      }
+    }
+
+    // Validar formato de IP
+    let formattedIP = clientIP
+    // Asegurar que la IP esté en un formato válido para PostgreSQL INET
+    if (!clientIP || clientIP === '127.0.0.1' || clientIP === 'localhost') {
+      formattedIP = '127.0.0.1'
+    }
+    
+    console.log(`[REGISTER_VOTE] Parámetros formateados:`, { 
+      serverId, 
+      serverType, 
+      formattedIP, 
+      formattedUserId,
+      userAgent: userAgent?.substring(0, 100), // Truncar user agent
+      country 
+    })
 
     // Usar la función de Supabase para registrar el voto
+    console.log(`[REGISTER_VOTE] Llamando función RPC register_vote`)
     const { data: voteResult, error: voteError } = await supabase
       .rpc('register_vote', {
         p_server_id: serverId,
         p_server_type: serverType,
-        p_voter_ip: clientIP,
-        p_user_id: userId || null,
-        p_user_agent: userAgent || null,
-        p_country: country || null
+        p_voter_ip: formattedIP,
+        p_user_id: formattedUserId,
+        p_user_agent: userAgent?.substring(0, 500) || null, // Truncar para evitar errores
+        p_country: country?.substring(0, 10) || null // Truncar para evitar errores
       })
 
     if (voteError) {
-      console.error('Error registrando voto:', voteError)
+      console.error('[REGISTER_VOTE] Error en función RPC:', voteError)
+      console.error('[REGISTER_VOTE] Detalles del error:', {
+        message: voteError.message,
+        details: voteError.details,
+        hint: voteError.hint,
+        code: voteError.code
+      })
       return {
         success: false,
         error: 'Error interno del servidor',
-        message: 'No se pudo registrar el voto. Inténtalo más tarde.'
+        message: 'No se pudo registrar el voto. Inténtalo más tarde.',
+        debug: voteError.message
       }
     }
+    
+    console.log(`[REGISTER_VOTE] Resultado de RPC:`, voteResult)
 
     // La función register_vote retorna un JSON con el resultado
     const result = voteResult
 
-    if (result.success) {
+    if (result && result.success) {
+      console.log(`[REGISTER_VOTE] Voto registrado exitosamente`)
       return {
         success: true,
-        message: result.message,
+        message: result.message || '¡Voto registrado exitosamente!',
         server: {
           id: server.id,
           title: server.title,
-          totalVotes: result.totalVotes
+          totalVotes: result.totalVotes || 1
         }
       }
     } else {
+      console.log(`[REGISTER_VOTE] Voto rechazado por reglas de negocio:`, result)
       return {
         success: false,
-        error: result.error,
-        message: result.message,
-        timeLeft: result.timeLeft
+        error: result?.error || 'Error desconocido',
+        message: result?.message || 'No se pudo registrar el voto',
+        timeLeft: result?.timeLeft
       }
     }
   } catch (error) {
-    console.error('Error registering vote:', error)
+    console.error('[REGISTER_VOTE] Error inesperado:', error)
     return {
       success: false,
       error: 'Error interno del servidor',
-      message: 'No se pudo registrar el voto. Inténtalo más tarde.'
+      message: 'No se pudo registrar el voto. Inténtalo más tarde.',
+      debug: error instanceof Error ? error.message : 'Error desconocido'
     }
   }
 }
 
 export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
+  console.log(`[VOTE] ===== ENDPOINT ALCANZADO =====`)
+  console.log(`[VOTE] Method: ${request.method}`)
+  console.log(`[VOTE] URL: ${request.url}`)
+  console.log(`[VOTE] Params:`, params)
+  
   try {
     const serverId = params.id
     const clientIP = getClientIP(request)
-    const body = await request.json()
+    
+    console.log(`[VOTE] Iniciando votación para servidor ${serverId} desde IP ${clientIP}`)
+    
+    let body
+    try {
+      body = await request.json()
+    } catch (error) {
+      console.error('[VOTE] Error parseando JSON:', error)
+      return NextResponse.json({ 
+        error: 'Datos inválidos',
+        message: 'No se pudo procesar la solicitud'
+      }, { status: 400 })
+    }
     
     if (!serverId) {
+      console.error('[VOTE] ID de servidor faltante')
       return NextResponse.json({ error: 'ID de servidor requerido' }, { status: 400 })
     }
 
     // Validar captcha si se proporciona (para usuarios no logueados)
     if (body.captcha && body.expectedCaptcha) {
+      console.log('[VOTE] Validando captcha...')
       if (!validateCaptcha(body.captcha, body.expectedCaptcha)) {
+        console.error('[VOTE] Captcha incorrecto')
         return NextResponse.json({ 
           error: 'Captcha incorrecto',
           message: 'El código de verificación no es correcto'
@@ -141,23 +228,29 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       // Aquí podrías implementar lógica para obtener userId de JWT/cookies de sesión
       // Por ahora lo dejamos como undefined para usuarios no logueados
       userId = body.userId || undefined
+      console.log(`[VOTE] Usuario ID: ${userId || 'no logueado'}`)
     } catch (error) {
       // Usuario no logueado o sesión inválida
       userId = undefined
     }
 
     // Registrar el voto usando la función actualizada
+    console.log('[VOTE] Registrando voto...')
     const result = await registerVote(serverId, clientIP, userAgent, country, userId)
+    
+    console.log('[VOTE] Resultado de votación:', result)
 
     if (!result.success) {
       const statusCode = result.timeLeft ? 429 : 400
+      console.error(`[VOTE] Voto fallido con código ${statusCode}:`, result.error)
       return NextResponse.json(result, { status: statusCode })
     }
 
+    console.log('[VOTE] Voto exitoso')
     return NextResponse.json(result)
 
   } catch (error) {
-    console.error('Error en votación:', error)
+    console.error('[VOTE] Error en votación:', error)
     return NextResponse.json({ 
       error: 'Error interno del servidor',
       message: 'No se pudo procesar el voto. Inténtalo más tarde.'

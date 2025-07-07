@@ -173,15 +173,6 @@ export default async function ServerInfoPage({
                   <div className="space-y-4">
                     <div>
                       <label className="block text-sm font-medium text-slate-400 mb-1">
-                        IP del Servidor
-                      </label>
-                      <div className="text-lg font-mono bg-slate-700/50 px-3 py-2 rounded-lg text-cyan-400 border border-slate-600">
-                        {server.ip}
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-slate-400 mb-1">
                         Categoría
                       </label>
                       <div className="text-white bg-slate-700/50 px-3 py-2 rounded-lg border border-slate-600">

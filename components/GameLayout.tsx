@@ -6,6 +6,7 @@ import CountryFlag from './CountryFlag';
 import ClientIPDisplay from './ClientIPDisplay';
 import BannerCard from './BannerCard';
 import { popularCountries, getCountryName } from '@/lib/countries';
+import RecentServers from './RecentServers';
 
 interface GameLayoutProps {
   title: string;
@@ -13,9 +14,31 @@ interface GameLayoutProps {
   totalServers: number;
   children: ReactNode;
   bgImage?: string;
+  searchTerm?: string;
+  onSearchChange?: (term: string) => void;
+  countryFilter?: string;
+  chronicleFilter?: string;
+  onCountryFilterChange?: (country: string) => void;
+  onChronicleFilterChange?: (chronicle: string) => void;
+  availableCountries?: string[];
+  availableChronicles?: string[];
 }
 
-export default function GameLayout({ title, description, totalServers, children, bgImage }: GameLayoutProps) {
+export default function GameLayout({ 
+  title, 
+  description, 
+  totalServers, 
+  children, 
+  bgImage, 
+  searchTerm = '', 
+  onSearchChange,
+  countryFilter = '',
+  chronicleFilter = '',
+  onCountryFilterChange,
+  onChronicleFilterChange,
+  availableCountries = [],
+  availableChronicles = []
+}: GameLayoutProps) {
   const isLineage = title === "Lineage II";
   
   // Usar la imagen específica de Lineage II si es el caso
@@ -23,6 +46,24 @@ export default function GameLayout({ title, description, totalServers, children,
     ? 'https://w0.peakpx.com/wallpaper/738/938/HD-wallpaper-lineage-2-the-chaotic-trone-2013-14-game-10.jpg'
     : bgImage;
   
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (onSearchChange) {
+      onSearchChange(e.target.value);
+    }
+  };
+
+  const handleCountryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    if (onCountryFilterChange) {
+      onCountryFilterChange(e.target.value);
+    }
+  };
+
+  const handleChronicleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    if (onChronicleFilterChange) {
+      onChronicleFilterChange(e.target.value);
+    }
+  };
+
   return (
     <div className="h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex flex-col overflow-hidden">
       
@@ -83,7 +124,7 @@ export default function GameLayout({ title, description, totalServers, children,
           {/* Sidebar Left - Más compacto */}
           <div className="col-span-12 lg:col-span-2 space-y-3 overflow-hidden">
             
-            {/* Filtros Compactos */}
+            {/* Filtros Funcionales */}
             <div className="bg-slate-800/50 backdrop-blur-md border border-slate-700/50 rounded-lg p-2">
               <h3 className="text-xs font-semibold text-white mb-2 flex items-center">
                 <Filter className="mr-1 h-3 w-3" />
@@ -93,9 +134,13 @@ export default function GameLayout({ title, description, totalServers, children,
               <div className="space-y-2">
                 <div>
                   <label className="block text-xs font-medium text-slate-300 mb-1">País</label>
-                  <select className="w-full bg-slate-700 border border-slate-600 rounded-md px-2 py-1 text-slate-200 text-xs">
-                    <option value="">Todos</option>
-                    {popularCountries.slice(0, 3).map((country) => (
+                  <select 
+                    className="w-full bg-slate-700 border border-slate-600 rounded-md px-2 py-1 text-slate-200 text-xs focus:outline-none focus:ring-1 focus:ring-cyan-500"
+                    value={countryFilter}
+                    onChange={handleCountryChange}
+                  >
+                    <option value="">Todos los países</option>
+                    {availableCountries.map((country) => (
                       <option key={country} value={country}>
                         {getCountryName(country)}
                       </option>
@@ -105,10 +150,17 @@ export default function GameLayout({ title, description, totalServers, children,
                 
                 <div>
                   <label className="block text-xs font-medium text-slate-300 mb-1">Crónica</label>
-                  <select className="w-full bg-slate-700 border border-slate-600 rounded-md px-2 py-1 text-slate-200 text-xs">
-                    <option>Todas</option>
-                    <option>Interlude</option>
-                    <option>High Five</option>
+                  <select 
+                    className="w-full bg-slate-700 border border-slate-600 rounded-md px-2 py-1 text-slate-200 text-xs focus:outline-none focus:ring-1 focus:ring-cyan-500"
+                    value={chronicleFilter}
+                    onChange={handleChronicleChange}
+                  >
+                    <option value="">Todas las crónicas</option>
+                    {availableChronicles.map((chronicle) => (
+                      <option key={chronicle} value={chronicle}>
+                        {chronicle}
+                      </option>
+                    ))}
                   </select>
                 </div>
               </div>
@@ -127,7 +179,7 @@ export default function GameLayout({ title, description, totalServers, children,
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-slate-400 text-xs">Online</span>
-                  <span className="text-green-400 font-semibold text-xs">{totalServers - 2}</span>
+                  <span className="text-green-400 font-semibold text-xs">{Math.max(0, totalServers - 2)}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-slate-400 text-xs">Jugadores</span>
@@ -172,8 +224,10 @@ export default function GameLayout({ title, description, totalServers, children,
                     <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-slate-400" />
                     <input
                       type="text"
-                      placeholder="Buscar..."
-                      className="pl-7 pr-3 py-1 bg-slate-700 border border-slate-600 rounded-md text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-cyan-500 text-sm"
+                      placeholder="Buscar servidores..."
+                      value={searchTerm}
+                      onChange={handleSearchChange}
+                      className="pl-7 pr-3 py-1 bg-slate-700 border border-slate-600 rounded-md text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-cyan-500 text-sm w-48"
                     />
                   </div>
                   
@@ -210,21 +264,8 @@ export default function GameLayout({ title, description, totalServers, children,
               size="large"
             />
 
-            {/* Servidores Recientes - Más compacto */}
-            <div className="bg-slate-800/50 backdrop-blur-md border border-slate-700/50 rounded-lg p-2">
-              <h3 className="text-xs font-semibold text-white mb-2">Recientes</h3>
-              <div className="space-y-1">
-                {['L2 New Era', 'MU Legends', 'WoW Classic'].map((server, i) => (
-                  <div key={i} className="flex items-center space-x-2">
-                    <div className="w-2 h-2 bg-green-400 rounded-full flex-shrink-0"></div>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-xs text-white font-medium truncate">{server}</div>
-                      <div className="text-xs text-slate-400">Hace {i + 1}h</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+            {/* Servidores Recientes - Componente funcional */}
+            <RecentServers />
           </div>
         </div>
       </div>

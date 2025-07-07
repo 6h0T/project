@@ -2,11 +2,21 @@ import { notFound } from 'next/navigation'
 import { getAnyServerById, type UnifiedServer } from '@/lib/database'
 import VotePage from '@/components/VotePage'
 
-async function getServerInfo(serverId: string) {
+async function getServerInfo(idParam: string) {
+  // Extraer ID del formato tanto "123" como "123_nombre-servidor"
+  let serverId = idParam
+  
+  // Si contiene underscore, extraer solo la parte antes del underscore
+  if (idParam.includes('_')) {
+    serverId = idParam.split('_')[0]
+  }
+  
+  console.log(`[VOTE_PAGE] Buscando servidor con ID: ${serverId} (parámetro original: ${idParam})`)
+  
   const { data: server, error } = await getAnyServerById(serverId)
   
   if (error || !server) {
-    console.log(`Servidor no encontrado: ${serverId}`, error)
+    console.log(`[VOTE_PAGE] Servidor no encontrado: ${serverId}`, error)
     return null
   }
 
@@ -21,7 +31,7 @@ export default async function ServerVotePage({
   const server = await getServerInfo(params.id)
   
   if (!server || !server.approved) {
-    console.log(`Servidor no aprobado o no encontrado: ${params.id}`, { server })
+    console.log(`[VOTE_PAGE] Servidor no aprobado o no encontrado: ${params.id}`, { server })
     notFound()
   }
 

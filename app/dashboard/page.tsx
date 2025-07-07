@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/custom-select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -43,6 +43,7 @@ import {
   Server,
   Loader2
 } from 'lucide-react';
+import Link from 'next/link';
 
 interface UserProfile {
   id: string;
@@ -160,6 +161,32 @@ export default function Dashboard() {
     }
   }, [user, loading, router]);
 
+  // Función para obtener créditos reales de la base de datos
+  const fetchUserCredits = async (): Promise<number> => {
+    try {
+      const token = await user?.getIdToken();
+      if (!token) return 0;
+
+      const response = await fetch('/api/user/credits', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        console.error('Error fetching credits:', response.statusText);
+        return 0;
+      }
+
+      const data = await response.json();
+      return data.credits || 0;
+    } catch (error) {
+      console.error('Error fetching user credits:', error);
+      return 0;
+    }
+  };
+
   const fetchProfile = async () => {
     try {
       console.log('Fetching profile for user:', user!.id);
@@ -196,18 +223,26 @@ export default function Dashboard() {
           }
           
           console.log('Profile created successfully:', newProfile);
+          
+          // Obtener créditos reales de la base de datos
+          const realCredits = await fetchUserCredits();
+          newProfile.credits = realCredits;
+          
           setProfile(newProfile);
         } else {
           throw error;
         }
       } else {
-        console.log('Profile found:', data);
+        console.log('Profile loaded successfully:', data);
+        
+        // Siempre obtener créditos reales de la base de datos
+        const realCredits = await fetchUserCredits();
+        data.credits = realCredits;
+        
         setProfile(data);
       }
     } catch (error) {
       console.error('Error in fetchProfile:', error);
-      setMessage('Error al cargar el perfil. Intentando de nuevo...');
-      setMessageType('error');
     } finally {
       setLoadingProfile(false);
     }
@@ -246,79 +281,58 @@ export default function Dashboard() {
   const calculateCost = () => {
     const position = bannerPositions.find(p => p.value === formData.position);
     const duration = durations.find(d => d.value === formData.duration);
-    return position && duration ? Math.round(position.cost * duration.multiplier) : 0;
+    return position && duration ? position.cost * duration.multiplier : 0;
   };
 
   const handleCreateBanner = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user || !profile) return;
-
-    const totalCost = calculateCost();
-    
-    if (profile.credits < totalCost) {
-      setMessage('Créditos insuficientes para crear este banner');
-      setMessageType('error');
-      return;
-    }
-
-    // Validar límite de tarjetas premium
-    if (formData.position === 'premium-card') {
-      try {
-        const { data: canCreate, error } = await supabase.rpc('check_premium_card_limit', {
-          user_id_param: user.id
-        });
-
-        if (error) throw error;
-        
-        if (!canCreate) {
-          setMessage('Has alcanzado el límite máximo de 4 tarjetas premium activas');
-          setMessageType('error');
-          return;
-        }
-      } catch (error: any) {
-        console.error('Error checking premium limit:', error);
-        setMessage('Error al validar límite de tarjetas premium');
-        setMessageType('error');
-        return;
-      }
-    }
-
     setIsCreating(true);
     setMessage('');
 
     try {
+      const cost = calculateCost();
+      
+      if (profile!.credits < cost) {
+        setMessage(`Necesitas ${cost} créditos para crear este banner. Tienes ${profile!.credits} créditos disponibles.`);
+        setMessageType('error');
+        return;
+      }
+
       const startDate = new Date();
       const endDate = new Date();
       endDate.setDate(startDate.getDate() + parseInt(formData.duration));
 
-      const { error: insertError } = await supabase
+      const { data: banner, error: bannerError } = await supabase
         .from('banners')
         .insert({
-          user_id: user.id,
+          user_id: user!.id,
           title: formData.title,
-          description: formData.description || null,
+          description: formData.description,
           image_url: formData.imageUrl,
           target_url: formData.targetUrl,
           position: formData.position,
           game_category: formData.gameCategory,
-          credits_cost: totalCost,
+          status: 'pending',
+          credits_cost: cost,
           start_date: startDate.toISOString(),
           end_date: endDate.toISOString(),
-          status: 'pending',
-        });
+        })
+        .select()
+        .single();
 
-      if (insertError) throw insertError;
+      if (bannerError) throw bannerError;
 
       // Deduct credits
-      const { error: updateError } = await supabase.rpc('deduct_credits', {
-        user_id: user.id,
-        amount: totalCost,
-      });
+      const { error: updateError } = await supabase
+        .from('user_profiles')
+        .update({ credits: profile!.credits - cost })
+        .eq('id', user!.id);
 
       if (updateError) throw updateError;
 
-      setMessage('¡Banner creado exitosamente! Está en revisión.');
-      setMessageType('success');
+      // Update local state
+      setProfile(prev => prev ? { ...prev, credits: prev.credits - cost } : null);
+      setBanners(prev => [banner, ...prev]);
       
       // Reset form
       setFormData({
@@ -331,11 +345,11 @@ export default function Dashboard() {
         duration: '15',
       });
 
-      // Refresh data
-      fetchProfile();
-      fetchBanners();
-    } catch (error: any) {
-      setMessage(error.message || 'Error al crear el banner');
+      setMessage('Banner creado exitosamente y enviado para revisión.');
+      setMessageType('success');
+    } catch (error) {
+      console.error('Error creating banner:', error);
+      setMessage('Error al crear el banner. Por favor, intenta nuevamente.');
       setMessageType('error');
     } finally {
       setIsCreating(false);
@@ -344,40 +358,28 @@ export default function Dashboard() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'active':
-        return 'bg-green-500/20 text-green-400 border-green-500/30';
-      case 'pending':
-        return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
-      case 'rejected':
-        return 'bg-red-500/20 text-red-400 border-red-500/30';
-      default:
-        return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
+      case 'active': return 'bg-green-500';
+      case 'pending': return 'bg-yellow-500';
+      case 'rejected': return 'bg-red-500';
+      default: return 'bg-gray-500';
     }
   };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'active':
-        return <CheckCircle className="h-4 w-4" />;
-      case 'pending':
-        return <Clock className="h-4 w-4" />;
-      case 'rejected':
-        return <XCircle className="h-4 w-4" />;
-      default:
-        return <AlertTriangle className="h-4 w-4" />;
+      case 'active': return <CheckCircle className="h-4 w-4" />;
+      case 'pending': return <Clock className="h-4 w-4" />;
+      case 'rejected': return <XCircle className="h-4 w-4" />;
+      default: return <AlertTriangle className="h-4 w-4" />;
     }
   };
 
   const getStatusText = (status: string) => {
     switch (status) {
-      case 'active':
-        return 'Activo';
-      case 'pending':
-        return 'En Revisión';
-      case 'rejected':
-        return 'Rechazado';
-      default:
-        return status;
+      case 'active': return 'Activo';
+      case 'pending': return 'Pendiente';
+      case 'rejected': return 'Rechazado';
+      default: return 'Desconocido';
     }
   };
 
@@ -391,7 +393,6 @@ export default function Dashboard() {
   };
 
   const handleEditServer = (server: UserServer) => {
-    // TODO: Implementar edición de servidor
     console.log('Edit server:', server);
   };
 
@@ -491,9 +492,11 @@ export default function Dashboard() {
                   <div className="text-sm text-slate-400">Créditos disponibles</div>
                 </div>
                 
-                <Button className="w-full bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600">
-                  <CreditCard className="mr-2 h-4 w-4" />
-                  Comprar Créditos
+                <Button asChild className="w-full bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600">
+                  <Link href="/buy-credits">
+                    <CreditCard className="mr-2 h-4 w-4" />
+                    Comprar Créditos
+                  </Link>
                 </Button>
               </CardContent>
             </Card>
@@ -511,7 +514,7 @@ export default function Dashboard() {
                   </div>
                 </CardContent>
               </Card>
-
+              
               <Card className="bg-slate-800/50 border-slate-700">
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
@@ -523,7 +526,7 @@ export default function Dashboard() {
                   </div>
                 </CardContent>
               </Card>
-
+              
               <Card className="bg-slate-800/50 border-slate-700">
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
@@ -535,7 +538,7 @@ export default function Dashboard() {
                   </div>
                 </CardContent>
               </Card>
-
+              
               <Card className="bg-slate-800/50 border-slate-700">
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">

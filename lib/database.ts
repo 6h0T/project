@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { validateServer, canAutoApprove, logValidationResult, type ServerForValidation } from './serverValidation';
 
 // Tipos para la base de datos
 export interface Server {
@@ -262,7 +263,7 @@ export async function getCategories() {
 export async function getServerCategories() {
   try {
     const { data: categories, error } = await supabase
-      .from('game_categories')
+      .from('server_categories')
       .select('*')
       .order('name');
 
@@ -284,7 +285,7 @@ export async function getUserServers(userId: string) {
       .from('user_servers')
       .select(`
         *,
-        category:game_categories(*)
+        category:server_categories(*)
       `)
       .eq('user_id', userId)
       .order('created_at', { ascending: false });
@@ -301,14 +302,37 @@ export async function getUserServers(userId: string) {
   }
 }
 
-// Función para generar ID de 6 dígitos aleatorios
+// Función para generar ID único - VERSIÓN TEMPORAL
+// TODO: Cambiar después de aplicar migración de base de datos
 function generateServerId(): string {
+  // TEMPORAL: Generar solo 6 dígitos para compatibilidad con VARCHAR(6)
+  // Después de aplicar migración, usar: `${baseId}_${timestamp}`
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
 export async function createUserServer(userId: string, serverData: CreateUserServerData) {
   try {
-    // Generar ID único de 6 dígitos
+    console.log(`[CREATE_SERVER] 🚀 Iniciando creación de servidor para usuario ${userId}`);
+    console.log(`[CREATE_SERVER] Datos del servidor:`, serverData);
+
+    // ===================================
+    // 1. VALIDAR SERVIDOR ANTES DE CREAR
+    // ===================================
+    const serverForValidation: ServerForValidation = {
+      title: serverData.title,
+      description: serverData.description,
+      website: serverData.website,
+      language: serverData.language || 'es',
+      category_id: serverData.category_id,
+      source: 'user_server'
+    };
+
+    const validation = validateServer(serverForValidation);
+    logValidationResult(serverForValidation, validation);
+
+    // ===================================
+    // 2. GENERAR ID Y SLUG ÚNICOS
+    // ===================================
     let serverId = generateServerId();
     
     // Verificar que el ID no exista (aunque las probabilidades son muy bajas)
@@ -343,27 +367,76 @@ export async function createUserServer(userId: string, serverData: CreateUserSer
       slug = `${baseSlug}-${Date.now()}`;
     }
 
-    // Crear servidor con ID y slug generados
+    // ===================================
+    // 3. DETERMINAR ESTADO INICIAL BASADO EN VALIDACIÓN
+    // ===================================
+    const initialStatus = validation.canAutoApprove ? 'online' : 'pending';
+    const isApproved = validation.canAutoApprove;
+
+    console.log(`[CREATE_SERVER] 🔍 Resultado de validación:`);
+    console.log(`[CREATE_SERVER] - Score: ${validation.score}%`);
+    console.log(`[CREATE_SERVER] - Auto-aprobable: ${validation.canAutoApprove ? '✅ SÍ' : '❌ NO'}`);
+    console.log(`[CREATE_SERVER] - Estado inicial: ${initialStatus}`);
+    console.log(`[CREATE_SERVER] - Aprobado: ${isApproved}`);
+
+    // ===================================
+    // 4. CREAR SERVIDOR CON ESTADO APROPIADO
+    // ===================================
     const { data, error } = await supabase
       .from('user_servers')
       .insert({
         id: serverId,
         user_id: userId,
         slug: slug,
+        approved: isApproved,  // ← Auto-aprobar si cumple requisitos
+        status: initialStatus, // ← 'online' si auto-aprobado, 'pending' si no
         ...serverData
       })
       .select()
       .single();
 
     if (error) {
-      console.error('Error creating user server:', error);
-      return { data: null, error };
+      console.error('[CREATE_SERVER] ❌ Error creando servidor:', error);
+      return { data: null, error, validation };
     }
 
-    return { data, error: null };
+    // ===================================
+    // 5. LOGGING Y NOTIFICACIONES
+    // ===================================
+    if (isApproved) {
+      console.log(`[CREATE_SERVER] 🎉 SERVIDOR AUTO-APROBADO`);
+      console.log(`[CREATE_SERVER] - ID: ${serverId}`);
+      console.log(`[CREATE_SERVER] - Título: ${serverData.title}`);
+      console.log(`[CREATE_SERVER] - Score de validación: ${validation.score}%`);
+      console.log(`[CREATE_SERVER] - Ya disponible para votación y listado público`);
+    } else {
+      console.log(`[CREATE_SERVER] ⏳ SERVIDOR PENDIENTE DE REVISIÓN`);
+      console.log(`[CREATE_SERVER] - ID: ${serverId}`);
+      console.log(`[CREATE_SERVER] - Título: ${serverData.title}`);
+      console.log(`[CREATE_SERVER] - Score: ${validation.score}% (necesita ≥80%)`);
+      console.log(`[CREATE_SERVER] - Issues:`, validation.issues);
+      console.log(`[CREATE_SERVER] - Requiere revisión manual o mejoras del usuario`);
+    }
+
+    return { 
+      data, 
+      error: null, 
+      validation,
+      autoApproved: isApproved,
+      message: isApproved 
+        ? `¡Servidor aprobado automáticamente! Ya está disponible para votación.`
+        : `Servidor creado pero requiere revisión. Score: ${validation.score}% (necesita ≥80%)`
+    };
+    
   } catch (error) {
-    console.error('Error creating user server:', error);
-    return { data: null, error };
+    console.error('[CREATE_SERVER] ❌ Error general creando servidor:', error);
+    return { 
+      data: null, 
+      error,
+      validation: null,
+      autoApproved: false,
+      message: 'Error interno del servidor'
+    };
   }
 }
 
@@ -640,31 +713,30 @@ function normalizeUserServer(server: UserServer): UnifiedServer {
 // Función unificada para buscar cualquier servidor por ID
 export async function getAnyServerById(serverId: string): Promise<{ data: UnifiedServer | null; error: any }> {
   try {
-    // Primero intentar como ID de user_server (string de 6 dígitos)
-    if (serverId && serverId.length === 6 && /^\d+$/.test(serverId)) {
-      const { data: userServer, error: userError } = await getUserServerById(serverId);
+    // Primero intentar como ID de user_server (string alfanumérico)
+    // Eliminamos la restricción de longitud y formato numérico
+    const { data: userServer, error: userError } = await getUserServerById(serverId);
+    
+    if (!userError && userServer && userServer.approved) {
+      const normalizedServer = normalizeUserServer(userServer);
       
-      if (!userError && userServer && userServer.approved) {
-        const normalizedServer = normalizeUserServer(userServer);
-        
-        // Obtener votos reales
-        const realVotes = await getRealVoteCount(serverId, 'user_server');
-        normalizedServer._count = { votes: realVotes };
-        
-        return { 
-          data: normalizedServer, 
-          error: null 
-        };
-      }
+      // Obtener votos reales
+      const realVotes = await getRealVoteCount(serverId, 'user_server');
+      normalizedServer._count = { votes: realVotes };
+      
+      return { 
+        data: normalizedServer, 
+        error: null 
+      };
     }
 
-    // Intentar buscar en la base de datos de Supabase
+    // Si no se encontró como user_server, intentar buscar en la base de datos de Supabase
     try {
       const { data: supabaseServer, error: supabaseError } = await supabase
         .from('servers')
         .select(`
           *,
-          game_categories(id, name, slug)
+          server_categories(id, name, slug)
         `)
         .eq('id', serverId)
         .single();
@@ -711,7 +783,7 @@ export async function getAnyServerById(serverId: string): Promise<{ data: Unifie
       console.log('Error searching in Supabase servers:', supabaseError);
     }
 
-    // Si no se encontró en Supabase, intentar como servidor hardcodeado
+    // Si no se encontró en Supabase, intentar como servidor hardcodeado (solo para IDs numéricos)
     const numericId = parseInt(serverId);
     if (!isNaN(numericId)) {
       const { data: hardcodedServers, error: hardcodedError } = await getServers();
@@ -732,6 +804,7 @@ export async function getAnyServerById(serverId: string): Promise<{ data: Unifie
       }
     }
 
+    console.log(`Servidor no encontrado con ID: ${serverId}`);
     return { data: null, error: 'Servidor no encontrado' };
   } catch (error) {
     console.error('Error en getAnyServerById:', error);

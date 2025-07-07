@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAdminToken, ADMIN_COOKIE_CONFIG } from '@/lib/simple-auth';
 import { supabase } from '@/lib/supabase';
+import { validateServer, type ValidationResult, type ServerForValidation } from '@/lib/serverValidation';
 
 // Requisitos obligatorios para la aprobación automática
 const REQUIRED_FIELDS = {
@@ -11,119 +12,45 @@ const REQUIRED_FIELDS = {
 const MIN_DESCRIPTION_LENGTH = 50;
 const MAX_TITLE_LENGTH = 100;
 
-interface ValidationResult {
-  isValid: boolean;
-  score: number;
-  missingFields: string[];
-  issues: string[];
-  recommendations: string[];
-}
-
 interface PendingServer {
-  id: string | number;
+  id: string;
   title: string;
-  description: string | null;
-  website: string | null;
+  description?: string;
+  website?: string;
+  language?: string;
+  category_id?: number;
   ip?: string;
-  country: string | null;
-  language: string;
-  version: string | null;
-  experience: number | null;
-  max_level?: number | null;
-  maxLevel?: number | null;
   status: string;
-  premium: boolean;
   approved: boolean;
   created_at: string;
-  updated_at: string;
-  category_id?: number;
-  categoryId?: number;
-  user_id?: string;
-  userId?: number;
+  source: 'user_server' | 'regular_servers';
   category?: {
     id: number;
     name: string;
     slug: string;
   };
-  source: 'user_server' | 'hardcoded' | 'regular_server';
+  validation: {
+    isValid: boolean;
+    score: number;
+    missingFields: string[];
+    issues: string[];
+    recommendations: string[];
+    canAutoApprove: boolean;
+  };
 }
 
-// Función para validar un servidor
-function validateServer(server: PendingServer): ValidationResult {
-  const result: ValidationResult = {
-    isValid: false,
-    score: 0,
-    missingFields: [],
-    issues: [],
-    recommendations: []
-  };
+interface PendingServersStats {
+  total: number;
+  pending: number;
+  rejected: number;
+  canAutoApprove: number;
+  averageScore: number;
+}
 
-  const requiredFields = server.source === 'user_server' 
-    ? REQUIRED_FIELDS.user_servers 
-    : REQUIRED_FIELDS.hardcoded_servers;
-
-  let totalPoints = 0;
-  let earnedPoints = 0;
-
-  // Validar campos obligatorios (40 puntos)
-  requiredFields.forEach(field => {
-    totalPoints += 10;
-    const value = server[field as keyof PendingServer];
-    
-    if (!value || (typeof value === 'string' && value.trim() === '')) {
-      result.missingFields.push(field);
-      result.issues.push(`Campo obligatorio faltante: ${field}`);
-    } else {
-      earnedPoints += 10;
-    }
-  });
-
-  // Validar título (20 puntos)
-  totalPoints += 20;
-  if (server.title) {
-    if (server.title.length >= 5 && server.title.length <= MAX_TITLE_LENGTH) {
-      earnedPoints += 20;
-    } else if (server.title.length < 5) {
-      result.issues.push('El título es demasiado corto (mínimo 5 caracteres)');
-    } else {
-      result.issues.push(`El título es demasiado largo (máximo ${MAX_TITLE_LENGTH} caracteres)`);
-    }
-  }
-
-  // Validar descripción (30 puntos)
-  totalPoints += 30;
-  if (server.description) {
-    if (server.description.length >= MIN_DESCRIPTION_LENGTH) {
-      earnedPoints += 30;
-    } else {
-      result.issues.push(`La descripción es demasiado corta (mínimo ${MIN_DESCRIPTION_LENGTH} caracteres)`);
-      result.recommendations.push('Agrega más detalles sobre el servidor, eventos especiales, características únicas');
-    }
-  }
-
-  // Validar website (10 puntos bonus)
-  totalPoints += 10;
-  if (server.website && server.website.trim() !== '') {
-    try {
-      new URL(server.website);
-      earnedPoints += 10;
-    } catch {
-      result.issues.push('La URL del sitio web no es válida');
-      result.recommendations.push('Verifica que la URL sea correcta y incluya http:// o https://');
-    }
-  } else {
-    result.recommendations.push('Considera agregar un sitio web para mayor credibilidad');
-  }
-
-  // Calcular score y determinar si es válido
-  result.score = Math.round((earnedPoints / totalPoints) * 100);
-  result.isValid = result.score >= 80 && result.missingFields.length === 0;
-
-  if (!result.isValid && result.score >= 60) {
-    result.recommendations.push('Tu servidor está cerca de ser aprobado automáticamente');
-  }
-
-  return result;
+interface PendingServersResponse {
+  success: boolean;
+  servers: PendingServer[];
+  stats: PendingServersStats;
 }
 
 // GET - Obtener servidores pendientes
@@ -148,7 +75,7 @@ export async function GET(request: NextRequest) {
         .from('user_servers')
         .select(`
           *,
-          category:game_categories(*)
+          category:server_categories(*)
         `)
         .eq('approved', false)
         .in('status', ['pending', 'rejected'])
@@ -178,7 +105,7 @@ export async function GET(request: NextRequest) {
         .from('servers')
         .select(`
           *,
-          game_categories(id, name, slug)
+          server_categories(id, name, slug)
         `)
         .eq('approved', false)
         .in('status', ['pending', 'rejected'])
@@ -189,11 +116,11 @@ export async function GET(request: NextRequest) {
           pendingServers.push({
             ...server,
             id: server.id.toString(), // Convertir a string para consistencia
-            source: 'regular_server',
-            category: server.game_categories && Array.isArray(server.game_categories) && server.game_categories[0] ? {
-              id: server.game_categories[0].id,
-              name: server.game_categories[0].name,
-              slug: server.game_categories[0].slug
+            source: 'regular_servers',
+            category: server.server_categories && Array.isArray(server.server_categories) && server.server_categories[0] ? {
+              id: server.server_categories[0].id,
+              name: server.server_categories[0].name,
+              slug: server.server_categories[0].slug
             } : undefined
           });
         });
@@ -202,9 +129,19 @@ export async function GET(request: NextRequest) {
       console.log('Error fetching regular servers (tabla podría no existir):', error);
     }
 
-    // Validar cada servidor pendiente
+    // Validar cada servidor pendiente usando el módulo centralizado
     const serversWithValidation = pendingServers.map(server => {
-      const validation = validateServer(server);
+      const serverForValidation: ServerForValidation = {
+        title: server.title,
+        description: server.description,
+        website: server.website,
+        language: server.language,
+        category_id: server.category_id,
+        ip: server.ip,
+        source: server.source === 'user_server' ? 'user_server' : 'regular_servers'
+      };
+      
+      const validation = validateServer(serverForValidation);
       
       return {
         ...server,
@@ -214,7 +151,7 @@ export async function GET(request: NextRequest) {
           missingFields: validation.missingFields,
           issues: validation.issues,
           recommendations: validation.recommendations,
-          canAutoApprove: validation.isValid
+          canAutoApprove: validation.canAutoApprove
         }
       };
     });
@@ -280,18 +217,62 @@ export async function PUT(request: NextRequest) {
     let result;
 
     if (source === 'user_server') {
-      const { data, error } = await supabase
+      const { data: serverData, error: selectError } = await supabase
         .from('user_servers')
-        .update({
-          approved: action === 'approve',
-          status: action === 'approve' ? 'online' : 'rejected',
-          updated_at: new Date().toISOString()
-        })
+        .select(`
+          *,
+          category:server_categories(*)
+        `)
         .eq('id', serverId)
-        .select()
         .single();
 
-      result = { data, error };
+      if (selectError) {
+        console.error('Error al seleccionar el servidor:', selectError);
+        return NextResponse.json(
+          { error: 'Error al seleccionar el servidor' },
+          { status: 500 }
+        );
+      }
+
+      // Usar módulo centralizado de validación
+      const serverForValidation: ServerForValidation = {
+        title: serverData.title,
+        description: serverData.description,
+        website: serverData.website,
+        language: serverData.language,
+        category_id: serverData.category_id,
+        source: 'user_server'
+      };
+      
+      const validation = validateServer(serverForValidation);
+
+      if (action === 'approve') {
+        const { data, error } = await supabase
+          .from('user_servers')
+          .update({
+            approved: true,
+            status: 'online',
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', serverId)
+          .select()
+          .single();
+
+        result = { data, error };
+      } else {
+        const { data: rejectData, error: rejectError } = await supabase
+          .from('user_servers')
+          .update({
+            approved: false,
+            status: 'rejected',
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', serverId)
+          .select()
+          .single();
+
+        result = { data: rejectData, error: rejectError };
+      }
     } else {
       // Para servidores hardcodeados (si los hay en el futuro)
       return NextResponse.json(

@@ -54,6 +54,33 @@ export function useServers(category: string = 'all', limit: number = 50): UseSer
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  // 🔄 LISTENER PARA EVENTOS DE VOTACIÓN
+  useEffect(() => {
+    const handleVoteSuccess = (event: CustomEvent) => {
+      const { serverId, newVoteCount } = event.detail
+      console.log('🗳️ Voto exitoso detectado en useServers:', { serverId, newVoteCount, category })
+      
+      // Actualizar el servidor en todas las listas
+      const updateServerVotes = (serverList: Server[]) => 
+        serverList.map(server => 
+          server.id.toString() === serverId.toString() 
+            ? { ...server, votes: newVoteCount }
+            : server
+        )
+      
+      setServers(prev => updateServerVotes(prev))
+      setPremiumServers(prev => updateServerVotes(prev))
+      setNormalServers(prev => updateServerVotes(prev))
+    }
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('voteSuccess', handleVoteSuccess as EventListener)
+      return () => {
+        window.removeEventListener('voteSuccess', handleVoteSuccess as EventListener)
+      }
+    }
+  }, [category])
+
   const fetchServers = async () => {
     try {
       setLoading(true)

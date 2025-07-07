@@ -134,6 +134,16 @@ export default function VoteButton({ serverId, serverTitle = 'este servidor', in
         if (!user) {
           setCaptchaQuestion(generateCaptcha())
         }
+        
+        // 🔄 EMITIR EVENTO PARA ACTUALIZAR LISTAS DE SERVIDORES
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('voteSuccess', { 
+            detail: { 
+              serverId, 
+              newVoteCount: data.server.totalVotes 
+            } 
+          }))
+        }
       } else {
         setMessage(data.message || data.error)
         setMessageType('error')
