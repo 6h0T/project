@@ -201,7 +201,7 @@ export default function BuyCreditsPage() {
         </Card>
 
         {/* Layout principal - Reorganizado */}
-        <div className="grid grid-cols-12 gap-3 h-[calc(100vh-160px)]">
+        <div className="grid grid-cols-12 gap-3 pb-5">
           
           {/* Panel izquierdo - Solo cantidad de créditos */}
           <div className="col-span-12 lg:col-span-4 space-y-3">
@@ -320,7 +320,7 @@ export default function BuyCreditsPage() {
           </div>
 
           {/* Panel derecho - Resumen y métodos de pago */}
-          <div className="col-span-12 lg:col-span-8 space-y-3 pb-4">
+          <div className="col-span-12 lg:col-span-8 space-y-3">
             
             {/* Resumen de compra - Más compacto */}
             <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-md">

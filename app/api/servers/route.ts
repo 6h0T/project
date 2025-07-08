@@ -212,6 +212,7 @@ export async function GET(request: NextRequest) {
       const { data: realVotes, error: voteCountError } = await supabase
         .rpc('get_server_vote_count', {
           p_server_id: server.id.toString(),
+          p_server_type: 'user_server'
         })
 
       if (voteCountError) {

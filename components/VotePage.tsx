@@ -172,7 +172,7 @@ export default function VotePage({ server, onOpenAuth }: VotePageProps) {
       const responseText = await response.text()
       console.log('[CLIENT] Response text:', responseText)
       
-      let data
+      let data: any
       try {
         data = JSON.parse(responseText)
       } catch (e) {

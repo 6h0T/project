@@ -164,7 +164,10 @@ export default function Dashboard() {
   // Función para obtener créditos reales de la base de datos
   const fetchUserCredits = async (): Promise<number> => {
     try {
-      const token = await user?.getIdToken();
+      // Obtener el token de sesión de Supabase
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      
       if (!token) return 0;
 
       const response = await fetch('/api/user/credits', {
