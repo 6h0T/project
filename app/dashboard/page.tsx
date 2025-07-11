@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/custom-select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -41,7 +41,8 @@ import {
   CheckCircle,
   XCircle,
   Server,
-  Loader2
+  Loader2,
+  ExternalLink
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -117,8 +118,8 @@ const gameCategories = [
   { value: 'aion', label: 'Aion Online' },
   { value: 'mu-online', label: 'Mu Online' },
   { value: 'perfect-world', label: 'Perfect World' },
-  { value: 'counter-strike', label: 'Counter Strike' },
-  { value: 'wow', label: 'World of Warcraft' },
+  { value: 'ragnarok-online', label: 'Ragnarok Online' },
+  { value: 'silkroad', label: 'Silkroad' },
   { value: 'all', label: 'Todas las categorías' },
 ];
 
@@ -605,13 +606,26 @@ export default function Dashboard() {
               <TabsContent value="banners" className="mt-6">
                 <Card className="bg-slate-800/50 border-slate-700">
                   <CardHeader>
-                    <CardTitle className="text-white flex items-center">
-                      <ImageIcon className="mr-3 h-6 w-6 text-cyan-400" />
-                      Sistema de Banners
-                    </CardTitle>
-                    <CardDescription className="text-slate-300">
-                      Crea banners publicitarios para tus servidores registrados
-                    </CardDescription>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <CardTitle className="text-white flex items-center">
+                          <ImageIcon className="mr-3 h-6 w-6 text-cyan-400" />
+                          Sistema de Banners
+                        </CardTitle>
+                        <CardDescription className="text-slate-300">
+                          Crea banners publicitarios para promocionar tus servidores
+                        </CardDescription>
+                      </div>
+                      {userServers.filter(s => s.approved).length > 0 && (
+                        <Button 
+                          onClick={() => router.push('/banners/create')}
+                          className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600"
+                        >
+                          <Plus className="mr-2 h-4 w-4" />
+                          Crear Banner
+                        </Button>
+                      )}
+                    </div>
                   </CardHeader>
                   <CardContent>
                     {userServers.length === 0 ? (
@@ -631,41 +645,157 @@ export default function Dashboard() {
                           Registrar Primer Servidor
                         </Button>
                       </div>
-                    ) : (
+                    ) : userServers.filter(s => s.approved).length === 0 ? (
                       <div className="text-center py-8">
-                        <ImageIcon className="h-16 w-16 text-slate-600 mx-auto mb-4" />
+                        <Server className="h-16 w-16 text-slate-600 mx-auto mb-4" />
                         <h3 className="text-xl font-semibold text-white mb-2">
-                          Sistema de Banners
+                          Servidores pendientes de aprobación
                         </h3>
                         <p className="text-slate-400 mb-6">
-                          Funcionalidad de banners publicitarios vinculada a tus servidores estará disponible próximamente
+                          Necesitas tener al menos un servidor aprobado para crear banners publicitarios
                         </p>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {userServers.filter(s => s.approved).map(server => (
-                            <Card key={server.id} className="bg-slate-700/50 border-slate-600">
-                              <CardContent className="p-4">
-                                <div className="flex items-center space-x-3">
-                                  <div className="w-12 h-12 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-lg flex items-center justify-center">
-                                    <Server className="h-6 w-6 text-white" />
-                                  </div>
-                                  <div>
-                                    <h4 className="font-semibold text-white">{server.title}</h4>
-                                    <p className="text-sm text-slate-400">
-                                      {server.category?.name} • {server.country}
-                                    </p>
-                                  </div>
+                        <div className="space-y-2">
+                          {userServers.map(server => (
+                            <div key={server.id} className="flex items-center justify-between p-3 bg-slate-700/30 rounded-lg">
+                              <div className="flex items-center space-x-3">
+                                <Server className="h-6 w-6 text-slate-400" />
+                                <div>
+                                  <p className="text-white font-medium">{server.title}</p>
+                                  <p className="text-slate-400 text-sm">{server.category?.name}</p>
                                 </div>
-                                <Button 
-                                  className="w-full mt-3 bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600"
-                                  disabled
-                                >
-                                  <Plus className="mr-2 h-4 w-4" />
-                                  Crear Banner (Próximamente)
-                                </Button>
-                              </CardContent>
-                            </Card>
+                              </div>
+                              <Badge className={`${getStatusColor(server.status)} text-xs`}>
+                                {getStatusIcon(server.status)} {getStatusText(server.status)}
+                              </Badge>
+                            </div>
                           ))}
                         </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-6">
+                        {/* Información sobre banners */}
+                        <div className="bg-slate-700/30 p-4 rounded-lg">
+                          <h4 className="text-white font-semibold mb-2">Sistema de Banners Publicitarios</h4>
+                          <p className="text-slate-400 text-sm mb-3">
+                            Promociona tus servidores con banners estratégicamente ubicados en el sitio
+                          </p>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                            <div className="space-y-2">
+                              <h5 className="text-cyan-400 font-medium">Posiciones Disponibles:</h5>
+                              <ul className="space-y-1 text-slate-400">
+                                <li>• Banners superiores (468x60)</li>
+                                <li>• Banners laterales (178x78)</li>
+                                <li>• Banners de contenido (300x250)</li>
+                                <li>• Banner rascacielos (120x600)</li>
+                              </ul>
+                            </div>
+                            <div className="space-y-2">
+                              <h5 className="text-cyan-400 font-medium">Características:</h5>
+                              <ul className="space-y-1 text-slate-400">
+                                <li>• Vista previa en tiempo real</li>
+                                <li>• Múltiples duraciones disponibles</li>
+                                <li>• Sistema de créditos integrado</li>
+                                <li>• Estadísticas de rendimiento</li>
+                              </ul>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Lista de servidores aprobados */}
+                        <div>
+                          <h4 className="text-white font-semibold mb-4">Servidores Disponibles para Banners</h4>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {userServers.filter(s => s.approved).map(server => (
+                              <Card key={server.id} className="bg-slate-700/50 border-slate-600 hover:border-slate-500 transition-colors">
+                                <CardContent className="p-4">
+                                  <div className="flex items-center space-x-3 mb-3">
+                                    <div className="w-12 h-12 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-lg flex items-center justify-center">
+                                      <Server className="h-6 w-6 text-white" />
+                                    </div>
+                                    <div>
+                                      <h4 className="font-semibold text-white">{server.title}</h4>
+                                      <p className="text-sm text-slate-400">
+                                        {server.category?.name} • {server.country}
+                                      </p>
+                                    </div>
+                                  </div>
+                                  
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex items-center space-x-2">
+                                      <Badge 
+                                        className={`${getStatusColor(server.status)} text-xs`}
+                                      >
+                                        {getStatusIcon(server.status)}
+                                        {getStatusText(server.status)}
+                                      </Badge>
+                                      {server.premium && (
+                                        <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30 text-xs">
+                                          ⭐ Premium
+                                        </Badge>
+                                      )}
+                                    </div>
+                                    
+                                    <Button
+                                      size="sm"
+                                      onClick={() => router.push(`/banners/create?server=${server.id}`)}
+                                      className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-xs"
+                                    >
+                                      <ImageIcon className="h-3 w-3 mr-1" />
+                                      Crear Banner
+                                    </Button>
+                                  </div>
+                                </CardContent>
+                              </Card>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Mis banners actuales */}
+                        {banners.length > 0 && (
+                          <div>
+                            <h4 className="text-white font-semibold mb-4">Mis Banners Actuales</h4>
+                            <div className="space-y-3">
+                              {banners.slice(0, 3).map(banner => (
+                                <div key={banner.id} className="flex items-center justify-between p-3 bg-slate-700/30 rounded-lg">
+                                  <div className="flex items-center space-x-3">
+                                    <div className="w-16 h-10 bg-slate-600 rounded overflow-hidden">
+                                      <img 
+                                        src={banner.image_url} 
+                                        alt={banner.title}
+                                        className="w-full h-full object-cover"
+                                        onError={(e) => {
+                                          (e.target as HTMLImageElement).src = '/placeholder-banner.png'
+                                        }}
+                                      />
+                                    </div>
+                                    <div>
+                                      <p className="text-white font-medium">{banner.title}</p>
+                                      <p className="text-slate-400 text-sm">
+                                        Posición: {banner.position} • {banner.credits_cost} créditos
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Badge 
+                                    className={`text-xs ${
+                                      banner.status === 'active' ? 'bg-green-500/20 text-green-400 border-green-500/30' :
+                                      banner.status === 'pending' ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' :
+                                      'bg-red-500/20 text-red-400 border-red-500/30'
+                                    }`}
+                                  >
+                                    {banner.status === 'active' ? '🟢 Activo' :
+                                     banner.status === 'pending' ? '🟡 Pendiente' :
+                                     '🔴 Rechazado'}
+                                  </Badge>
+                                </div>
+                              ))}
+                              {banners.length > 3 && (
+                                <p className="text-slate-400 text-sm text-center">
+                                  Y {banners.length - 3} banner{banners.length - 3 !== 1 ? 's' : ''} más...
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
                   </CardContent>

@@ -11,8 +11,8 @@ import {
   ServerItem 
 } from '@/lib/serverFilters'
 
-export default function CounterStrikePage() {
-  const { premiumServers, normalServers, totalServers, loading, error, refetch } = useServers('counter-strike');
+export default function RagnarokOnlinePage() {
+  const { premiumServers, normalServers, totalServers, loading, error, refetch } = useServers('ragnarok-online');
   
   // Estados para filtros
   const [searchTerm, setSearchTerm] = useState('');
@@ -59,8 +59,8 @@ export default function CounterStrikePage() {
   if (loading) {
     return (
       <GameLayout
-        title="Counter-Strike"
-        description="Global Offensive"
+        title="Ragnarok Online"
+        description="The World of Magic"
         totalServers={0}
         bgImage="https://images.pexels.com/photos/442576/pexels-photo-442576.jpeg"
         searchTerm={searchTerm}
@@ -85,8 +85,8 @@ export default function CounterStrikePage() {
   if (error) {
     return (
       <GameLayout
-        title="Counter-Strike"
-        description="Global Offensive"
+        title="Ragnarok Online"
+        description="The World of Magic"
         totalServers={0}
         bgImage="https://images.pexels.com/photos/442576/pexels-photo-442576.jpeg"
         searchTerm={searchTerm}
@@ -120,8 +120,8 @@ export default function CounterStrikePage() {
 
   return (
     <GameLayout
-      title="Counter-Strike"
-      description="Global Offensive"
+      title="Ragnarok Online"
+      description="The World of Magic"
       totalServers={filteredServers.length}
       bgImage="https://images.pexels.com/photos/442576/pexels-photo-442576.jpeg"
       searchTerm={searchTerm}
@@ -185,4 +185,4 @@ export default function CounterStrikePage() {
       )}
     </GameLayout>
   );
-}
+} 

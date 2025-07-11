@@ -47,8 +47,8 @@ CREATE TABLE IF NOT EXISTS user_servers (
 -- Insertar categorías predeterminadas con slugs correctos
 INSERT INTO game_categories (name, slug, description, icon) VALUES
 ('Lineage II', 'lineage-ii', 'Servidores de Lineage II', '⚔️'),
-('Counter-Strike', 'counter-strike', 'Servidores de Counter-Strike', '🔫'),
-('World of Warcraft', 'wow', 'Servidores de World of Warcraft', '🛡️'),
+('Ragnarok Online', 'ragnarok-online', 'Servidores de Ragnarok Online', '🔮'),
+('Silkroad', 'silkroad', 'Servidores de Silkroad', '🏺'),
 ('Perfect World', 'perfect-world', 'Servidores de Perfect World', '🏔️'),
 ('Aion', 'aion', 'Servidores de Aion', '👼'),
 ('MU Online', 'mu-online', 'Servidores de MU Online', '🗡️')
@@ -292,7 +292,7 @@ DECLARE
   time_left INTERVAL;
   current_month INTEGER;
   current_year INTEGER;
-  total_votes INTEGER;
+  votes_count INTEGER;
   result JSON;
 BEGIN
   -- Verificar si puede votar
@@ -341,17 +341,17 @@ BEGIN
     updated_at = NOW();
   
   -- Obtener total de votos del mes
-  SELECT total_votes INTO total_votes
-  FROM server_vote_stats
-  WHERE server_id = p_server_id 
-    AND server_type = p_server_type
-    AND month = current_month 
-    AND year = current_year;
+  SELECT svs.total_votes INTO votes_count
+  FROM server_vote_stats svs
+  WHERE svs.server_id = p_server_id 
+    AND svs.server_type = p_server_type
+    AND svs.month = current_month 
+    AND svs.year = current_year;
   
   result := json_build_object(
     'success', true,
     'message', '¡Voto registrado exitosamente! Gracias por tu apoyo.',
-    'totalVotes', COALESCE(total_votes, 1)
+    'totalVotes', COALESCE(votes_count, 1)
   );
   
   RETURN result;

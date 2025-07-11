@@ -25,12 +25,12 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { 
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+  CustomSelect as Select,
+  CustomSelectContent as SelectContent,
+  CustomSelectItem as SelectItem,
+  CustomSelectTrigger as SelectTrigger,
+  CustomSelectValue as SelectValue,
+} from '@/components/ui/custom-select';
 import { 
   Loader2, 
   Search, 

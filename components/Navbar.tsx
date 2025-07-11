@@ -14,8 +14,8 @@ const navigation = [
   { name: 'Aion Online', href: '/aion', icon: Shield },
   { name: 'Mu Online', href: '/mu-online', icon: Zap },
   { name: 'Perfect World', href: '/perfect-world', icon: Users },
-  { name: 'Counter Strike', href: '/counter-strike', icon: Target },
-  { name: 'World of Warcraft', href: '/wow', icon: Gamepad2 },
+  { name: 'Ragnarok Online', href: '/ragnarok-online', icon: Target },
+  { name: 'Silkroad', href: '/silkroad', icon: Gamepad2 },
 ];
 
 export default function Navbar() {
@@ -103,96 +103,55 @@ export default function Navbar() {
                     }`}
                   >
                     <Icon className="h-4 w-4" />
-                    <span className="hidden sm:block">{item.name}</span>
+                    <span className="hidden sm:inline">{item.name}</span>
                   </Link>
                 );
               })}
             </div>
-
+            
             <div className="flex items-center space-x-4">
               {loading ? (
-                <div className="w-8 h-8 bg-white/10 rounded-full animate-pulse backdrop-blur-sm" />
+                <div className="w-8 h-8 animate-spin rounded-full border-2 border-cyan-500 border-t-transparent"></div>
               ) : user ? (
                 <div className="relative" ref={dropdownRef}>
-                  <button
-                    className="relative w-8 h-8 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full flex items-center justify-center transition-all duration-300 hover:shadow-lg hover:shadow-cyan-500/40 hover:scale-105"
+                  <Button
                     onClick={() => setDropdownOpen(!dropdownOpen)}
+                    className="bg-slate-800/90 hover:bg-slate-700/90 border border-slate-600/80 hover:border-cyan-500/60 text-white hover:text-cyan-100 backdrop-blur-sm transition-all duration-200 shadow-lg min-w-[44px] h-10"
                   >
-                    <User className="h-4 w-4 text-white" />
-                  </button>
+                    <User className="h-4 w-4 mr-2 flex-shrink-0" />
+                    <span className="hidden sm:inline font-medium truncate">{user.email?.split('@')[0]}</span>
+                  </Button>
                   
-                  <div 
-                    className={`absolute right-0 top-full mt-1 w-56 origin-top transform transition-all duration-200 ease-out ${
-                      dropdownOpen 
-                        ? 'opacity-100 scale-y-100 translate-y-0' 
-                        : 'opacity-0 scale-y-0 -translate-y-2 pointer-events-none'
-                    }`}
-                    style={{
-                      transformOrigin: 'top right'
-                    }}
-                  >
-                    <div className="bg-slate-900/95 backdrop-blur-xl border border-white/10 shadow-2xl rounded-lg p-1">
-                      <div className="px-3 py-2 border-b border-white/10">
-                        <div className="flex flex-col space-y-1">
-                          <p className="text-sm font-medium text-white">{user.email}</p>
-                          <p className="text-xs text-slate-400">Gestiona tu cuenta</p>
-                        </div>
-                      </div>
-                      
+                  {dropdownOpen && (
+                    <div className="absolute right-0 mt-2 w-48 bg-slate-800/95 backdrop-blur-xl border border-slate-600/80 rounded-lg shadow-2xl z-50 profile-dropdown-custom">
                       <div className="py-1">
-                        <Link 
-                          href="/dashboard" 
-                          className="flex items-center px-3 py-2 text-sm text-slate-300 hover:text-white hover:bg-white/10 rounded-md transition-colors cursor-pointer"
+                        <Link
+                          href="/dashboard"
+                          className="flex items-center px-4 py-3 text-sm text-slate-200 hover:bg-slate-700/70 hover:text-white transition-all duration-150 first:rounded-t-lg"
                           onClick={() => setDropdownOpen(false)}
                         >
-                          <User className="mr-2 h-4 w-4" />
-                          Dashboard
+                          <Settings className="h-4 w-4 mr-3 text-slate-400 flex-shrink-0" />
+                          <span className="font-medium">Dashboard</span>
                         </Link>
-                        <Link 
-                          href="/buy-credits" 
-                          className="flex items-center px-3 py-2 text-sm text-yellow-300 hover:text-yellow-200 hover:bg-yellow-500/10 rounded-md transition-colors cursor-pointer"
-                          onClick={() => setDropdownOpen(false)}
-                        >
-                          <Zap className="mr-2 h-4 w-4" />
-                          Comprar Créditos
-                        </Link>
-                        <Link 
-                          href="/dashboard" 
-                          className="flex items-center px-3 py-2 text-sm text-slate-300 hover:text-white hover:bg-white/10 rounded-md transition-colors cursor-pointer"
-                          onClick={() => setDropdownOpen(false)}
-                        >
-                          <Settings className="mr-2 h-4 w-4" />
-                          Configuración
-                        </Link>
-                      </div>
-                      
-                      <div className="border-t border-white/10 py-1">
-                        <button 
+                        <button
                           onClick={handleLogout}
-                          className="flex items-center w-full px-3 py-2 text-sm text-red-400 hover:text-red-300 hover:bg-red-900/20 rounded-md transition-colors cursor-pointer"
+                          className="flex items-center w-full px-4 py-3 text-sm text-slate-200 hover:bg-red-500/10 hover:text-red-300 transition-all duration-150 last:rounded-b-lg"
                         >
-                          <LogOut className="mr-2 h-4 w-4" />
-                          Cerrar Sesión
+                          <LogOut className="h-4 w-4 mr-3 text-slate-400 flex-shrink-0" />
+                          <span className="font-medium">Cerrar Sesión</span>
                         </button>
                       </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               ) : (
-                <div className="flex items-center space-x-3">
-                  <Link 
-                    href="/login"
-                    className="text-slate-300 hover:text-white transition-colors duration-200 text-sm font-medium"
-                  >
-                    Iniciar Sesión
-                  </Link>
-                  <Link 
-                    href="/registro"
-                    className="bg-gradient-to-r from-cyan-500/80 to-blue-500/80 hover:from-cyan-500 hover:to-blue-500 text-white backdrop-blur-sm border border-white/20 shadow-lg hover:shadow-cyan-500/30 transition-all duration-300 px-4 py-2 rounded-lg text-sm font-medium"
-                  >
-                    Registrarse
-                  </Link>
-                </div>
+                <Button
+                  onClick={() => openAuthModal('login')}
+                  className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white shadow-lg"
+                >
+                  <LogIn className="h-4 w-4 mr-2" />
+                  Iniciar Sesión
+                </Button>
               )}
             </div>
           </div>

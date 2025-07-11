@@ -40,8 +40,8 @@ const gameCategories = [
   { value: 'aion', label: 'Aion Online', flag: 'International' },
   { value: 'mu-online', label: 'Mu Online', flag: 'International' },
   { value: 'perfect-world', label: 'Perfect World', flag: 'International' },
-  { value: 'counter-strike', label: 'Counter Strike', flag: 'International' },
-  { value: 'wow', label: 'World of Warcraft', flag: 'International' },
+  { value: 'ragnarok-online', label: 'Ragnarok Online', flag: 'International' },
+  { value: 'silkroad', label: 'Silkroad', flag: 'International' },
   { value: 'all', label: 'Todas las categorías', flag: 'International' },
 ];
 

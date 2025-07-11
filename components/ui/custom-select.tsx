@@ -29,6 +29,7 @@ interface CustomSelectItemProps {
   className?: string;
   children?: React.ReactNode;
   onSelect?: (value: string) => void;
+  disabled?: boolean;
 }
 
 interface CustomSelectValueProps {
@@ -41,6 +42,8 @@ const CustomSelectContext = React.createContext<{
   onValueChange?: (value: string) => void;
   open: boolean;
   setOpen: (open: boolean) => void;
+  selectedLabel?: string;
+  setSelectedLabel?: (label: string) => void;
 }>({
   open: false,
   setOpen: () => {},
@@ -53,7 +56,15 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
   disabled 
 }) => {
   const [open, setOpen] = React.useState(false);
+  const [selectedLabel, setSelectedLabel] = React.useState<string>('');
   const selectRef = React.useRef<HTMLDivElement>(null);
+
+  // Reset selectedLabel when value changes externally
+  React.useEffect(() => {
+    if (!value) {
+      setSelectedLabel('');
+    }
+  }, [value]);
 
   // Close dropdown when clicking outside
   React.useEffect(() => {
@@ -72,7 +83,9 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
     onValueChange,
     open: disabled ? false : open,
     setOpen: disabled ? () => {} : setOpen,
-  }), [value, onValueChange, open, disabled]);
+    selectedLabel,
+    setSelectedLabel,
+  }), [value, onValueChange, open, disabled, selectedLabel]);
 
   return (
     <CustomSelectContext.Provider value={contextValue}>
@@ -134,27 +147,56 @@ export const CustomSelectContent: React.FC<CustomSelectContentProps> = ({
 export const CustomSelectItem: React.FC<CustomSelectItemProps> = ({ 
   value, 
   className, 
-  children 
+  children,
+  disabled = false
 }) => {
-  const { value: selectedValue, onValueChange, setOpen } = React.useContext(CustomSelectContext);
+  const { value: selectedValue, onValueChange, setOpen, setSelectedLabel } = React.useContext(CustomSelectContext);
   const isSelected = value === selectedValue;
 
+  const extractTextFromChildren = (children: React.ReactNode): string => {
+    if (typeof children === 'string') {
+      return children;
+    }
+    
+    if (React.isValidElement(children)) {
+      // Si es un elemento React, intentar extraer el texto recursivamente
+      if (children.props && children.props.children) {
+        return extractTextFromChildren(children.props.children);
+      }
+    }
+    
+    if (Array.isArray(children)) {
+      // Si es un array, concatenar todos los textos
+      return children.map(child => extractTextFromChildren(child)).join(' ');
+    }
+    
+    return String(children || '');
+  };
+
   const handleSelect = () => {
+    if (disabled) return;
     onValueChange?.(value);
+    
+    // Extraer el texto de manera más robusta
+    const labelText = extractTextFromChildren(children);
+    setSelectedLabel?.(labelText);
     setOpen(false);
   };
 
   return (
     <div
       className={cn(
-        'relative flex w-full cursor-pointer select-none items-center rounded-md py-2 pl-8 pr-2 text-sm text-slate-300 hover:text-white hover:bg-white/10 transition-colors duration-200 outline-none focus:bg-white/10 focus:text-white',
-        isSelected && 'bg-white/10 text-white',
+        'relative flex w-full select-none items-center rounded-md py-2 pl-8 pr-2 text-sm text-slate-300 transition-colors duration-200 outline-none',
+        disabled 
+          ? 'cursor-not-allowed opacity-50 text-slate-500'
+          : 'cursor-pointer hover:text-white hover:bg-white/10 focus:bg-white/10 focus:text-white',
+        isSelected && !disabled && 'bg-white/10 text-white',
         className
       )}
       onClick={handleSelect}
     >
       <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
-        {isSelected && <Check className="h-4 w-4 text-cyan-400" />}
+        {isSelected && !disabled && <Check className="h-4 w-4 text-cyan-400" />}
       </span>
       {children}
     </div>
@@ -162,13 +204,24 @@ export const CustomSelectItem: React.FC<CustomSelectItemProps> = ({
 };
 
 export const CustomSelectValue: React.FC<CustomSelectValueProps> = ({ children, placeholder }) => {
-  const { value } = React.useContext(CustomSelectContext);
+  const { value, selectedLabel } = React.useContext(CustomSelectContext);
   
-  if (!value && placeholder) {
+  // Si hay children personalizados y tenemos un valor seleccionado, mostrar los children
+  if (children && value) {
+    return <span className="block truncate text-white">{children}</span>;
+  }
+  
+  // Si tenemos selectedLabel, mostrarlo
+  if (selectedLabel) {
+    return <span className="block truncate text-white">{selectedLabel}</span>;
+  }
+  
+  // Si no hay nada seleccionado, mostrar placeholder
+  if (placeholder) {
     return <span className="block truncate text-slate-400">{placeholder}</span>;
   }
   
-  return <span className="block truncate text-white">{children}</span>;
+  return <span className="block truncate text-slate-400">Seleccionar...</span>;
 };
 
 // Export with same names as shadcn for easy replacement

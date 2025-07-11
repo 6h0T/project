@@ -244,8 +244,8 @@ export async function getCategories() {
       { id: 1, name: 'Lineage 2', slug: 'lineage-2', _count: { servers: 5 } },
       { id: 2, name: 'MU Online', slug: 'mu-online', _count: { servers: 3 } },
       { id: 3, name: 'Perfect World', slug: 'perfect-world', _count: { servers: 2 } },
-      { id: 4, name: 'Counter Strike', slug: 'counter-strike', _count: { servers: 4 } },
-      { id: 5, name: 'World of Warcraft', slug: 'world-of-warcraft', _count: { servers: 1 } },
+      { id: 4, name: 'Ragnarok Online', slug: 'ragnarok-online', _count: { servers: 4 } },
+      { id: 5, name: 'Silkroad', slug: 'silkroad', _count: { servers: 1 } },
       { id: 6, name: 'Aion', slug: 'aion', _count: { servers: 2 } },
     ];
 

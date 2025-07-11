@@ -1,158 +1,135 @@
-'use client';
+'use client'
 
-import { useState, useEffect } from 'react';
-import { useAuth } from '@/hooks/useAuth';
-import { getUserServers, deleteUserServer, type UserServer } from '@/lib/database';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
-import { 
-  Server, 
-  Globe, 
-  MapPin, 
-  Star, 
-  TrendingUp, 
-  Edit, 
-  Trash2, 
-  Eye, 
-  AlertCircle,
-  CheckCircle,
-  Clock,
-  XCircle,
-  Shield,
-  ExternalLink,
-  Loader2,
-  Plus,
-  Target,
-  Gamepad2
-} from 'lucide-react';
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Plus, Server, Edit, Eye, Trash2, ExternalLink } from 'lucide-react'
+import { getUserServers, type UserServer } from '@/lib/database'
+import { useAuth } from '@/hooks/useAuth'
 
 interface UserServersListProps {
-  onCreateServer?: () => void;
-  onEditServer?: (server: UserServer) => void;
-  refreshTrigger?: number;
+  onCreateServer: () => void
+  onEditServer: (server: UserServer) => void
+  refreshTrigger: number
 }
 
 export default function UserServersList({ onCreateServer, onEditServer, refreshTrigger }: UserServersListProps) {
-  const { user } = useAuth();
-  const [servers, setServers] = useState<UserServer[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [message, setMessage] = useState('');
-  const [messageType, setMessageType] = useState<'success' | 'error' | 'info'>('info');
+  const { user } = useAuth()
+  const router = useRouter()
+  const [userServers, setUserServers] = useState<UserServer[]>([])
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     if (user) {
-      fetchServers();
+      fetchUserServers()
     }
-  }, [user, refreshTrigger]);
+  }, [user, refreshTrigger])
 
-  const fetchServers = async () => {
-    if (!user) return;
-
-    try {
-      setLoading(true);
-      const { data, error } = await getUserServers(user.id);
-      
-      if (error) {
-        console.error('Error fetching servers:', error);
-        setMessage('Error al cargar los servidores');
-        setMessageType('error');
-        setServers([]);
-      } else {
-        setServers(data);
-        setMessage('');
-      }
-    } catch (error) {
-      console.error('Error fetching servers:', error);
-      setMessage('Error de conexión');
-      setMessageType('error');
-      setServers([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleDeleteServer = async (serverId: string) => {
-    setDeletingId(serverId);
+  const fetchUserServers = async () => {
+    if (!user) return
     
     try {
-      const { error } = await deleteUserServer(serverId);
-      
+      setLoading(true)
+      const { data, error } = await getUserServers(user.id)
       if (error) {
-        console.error('Error deleting server:', error);
-        setMessage('Error al eliminar el servidor');
-        setMessageType('error');
+        console.error('Error fetching user servers:', error)
       } else {
-        setMessage('Servidor eliminado exitosamente');
-        setMessageType('success');
-        setServers(servers.filter(s => s.id !== serverId));
+        setUserServers(data)
       }
     } catch (error) {
-      console.error('Error deleting server:', error);
-      setMessage('Error de conexión');
-      setMessageType('error');
+      console.error('Error fetching user servers:', error)
     } finally {
-      setDeletingId(null);
+      setLoading(false)
     }
-  };
+  }
 
-  const getStatusColor = (status: string) => {
+  const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'online': return 'bg-green-500';
-      case 'offline': return 'bg-red-500';
-      case 'maintenance': return 'bg-yellow-500';
-      case 'pending': return 'bg-blue-500';
-      case 'rejected': return 'bg-gray-500';
-      default: return 'bg-gray-500';
+      case 'online':
+        return (
+          <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-xs">
+            ✓ En línea
+          </Badge>
+        )
+      case 'pending':
+        return (
+          <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30 text-xs">
+            ⏳ Pendiente
+          </Badge>
+        )
+      case 'rejected':
+        return (
+          <Badge className="bg-red-500/20 text-red-400 border-red-500/30 text-xs">
+            ✗ Rechazado
+          </Badge>
+        )
+      default:
+        return (
+          <Badge className="bg-gray-500/20 text-gray-400 border-gray-500/30 text-xs">
+            {status}
+          </Badge>
+        )
     }
-  };
+  }
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'online': return <CheckCircle className="h-4 w-4" />;
-      case 'offline': return <XCircle className="h-4 w-4" />;
-      case 'maintenance': return <AlertCircle className="h-4 w-4" />;
-      case 'pending': return <Clock className="h-4 w-4" />;
-      case 'rejected': return <XCircle className="h-4 w-4" />;
-      default: return <Shield className="h-4 w-4" />;
-    }
-  };
+  const getCategoryBadge = (category: string) => {
+    return (
+      <Badge className="bg-cyan-500/20 text-cyan-400 border-cyan-500/30 text-xs">
+        📁 {category}
+      </Badge>
+    )
+  }
 
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'online': return 'En línea';
-      case 'offline': return 'Fuera de línea';
-      case 'maintenance': return 'Mantenimiento';
-      case 'pending': return 'Pendiente';
-      case 'rejected': return 'Rechazado';
-      default: return 'Desconocido';
-    }
-  };
+  const getCountryBadge = (country: string) => {
+    return (
+      <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30 text-xs">
+        🌍 {country}
+      </Badge>
+    )
+  }
+
+  const getExperienceBadge = (experience: number) => {
+    return (
+      <Badge className="bg-orange-500/20 text-orange-400 border-orange-500/30 text-xs">
+        ⚡ {experience}x EXP
+      </Badge>
+    )
+  }
 
   if (loading) {
     return (
+      <div className="flex justify-center items-center py-12">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-500"></div>
+        <span className="ml-3 text-slate-400">Cargando servidores...</span>
+      </div>
+    )
+  }
+
+  if (userServers.length === 0) {
+    return (
       <Card className="bg-slate-800/50 border-slate-700">
-        <CardContent className="p-8">
-          <div className="flex items-center justify-center">
-            <Loader2 className="h-8 w-8 animate-spin text-cyan-400" />
-            <span className="ml-2 text-slate-300">Cargando servidores...</span>
+        <CardContent className="py-12">
+          <div className="text-center">
+            <Server className="h-16 w-16 text-slate-600 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-white mb-2">
+              No tienes servidores registrados
+            </h3>
+            <p className="text-slate-400 mb-6">
+              Comienza registrando tu primer servidor en nuestra plataforma
+            </p>
+            <Button 
+              onClick={onCreateServer}
+              className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600"
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Registrar Primer Servidor
+            </Button>
           </div>
         </CardContent>
       </Card>
-    );
+    )
   }
 
   return (
@@ -163,7 +140,7 @@ export default function UserServersList({ onCreateServer, onEditServer, refreshT
           <h2 className="text-2xl font-bold text-white">Mis Servidores</h2>
           <p className="text-slate-400">Gestiona tus servidores registrados</p>
         </div>
-        <Button
+        <Button 
           onClick={onCreateServer}
           className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600"
         >
@@ -172,215 +149,98 @@ export default function UserServersList({ onCreateServer, onEditServer, refreshT
         </Button>
       </div>
 
-      {/* Mensaje de resultado */}
-      {message && (
-        <Alert className={`${
-          messageType === 'success' 
-            ? 'bg-green-900/20 border-green-500/50' 
-            : messageType === 'error'
-            ? 'bg-red-900/20 border-red-500/50'
-            : 'bg-blue-900/20 border-blue-500/50'
-        }`}>
-          {messageType === 'success' ? (
-            <CheckCircle className="h-4 w-4 text-green-400" />
-          ) : messageType === 'error' ? (
-            <AlertCircle className="h-4 w-4 text-red-400" />
-          ) : (
-            <Shield className="h-4 w-4 text-blue-400" />
-          )}
-          <AlertDescription className={`${
-            messageType === 'success' ? 'text-green-300' : 
-            messageType === 'error' ? 'text-red-300' : 'text-blue-300'
-          }`}>
-            {message}
-          </AlertDescription>
-        </Alert>
-      )}
-
       {/* Lista de servidores */}
-      {servers.length === 0 ? (
-        <Card className="bg-slate-800/50 border-slate-700">
-          <CardContent className="p-8 text-center">
-            <div className="mb-6">
-              <div className="w-16 h-16 bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Server className="h-8 w-8 text-slate-400" />
-              </div>
-              <h3 className="text-xl font-bold text-white mb-2">
-                No tienes servidores registrados
-              </h3>
-              <p className="text-slate-300 mb-6">
-                Registra tu primer servidor y comienza a promocionarlo en nuestra plataforma.
-              </p>
-              {onCreateServer && (
-                <Button
-                  onClick={onCreateServer}
-                  className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white"
-                >
-                  <Plus className="mr-2 h-4 w-4" />
-                  Registrar Servidor
-                </Button>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid gap-4">
-          {servers.map((server) => (
-            <Card key={server.id} className="bg-slate-800/50 border-slate-700">
-              <CardHeader className="pb-4">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <CardTitle className="text-white text-lg">
-                        {server.title}
-                      </CardTitle>
-                      {server.premium && (
-                        <Badge className="bg-gradient-to-r from-yellow-400 to-orange-500 text-black text-xs font-bold">
-                          <Star className="h-3 w-3 mr-1" />
-                          PREMIUM
-                        </Badge>
-                      )}
+      <div className="space-y-4">
+        {userServers.map((server) => (
+          <Card key={server.id} className="bg-slate-800/50 border-slate-700/50 backdrop-blur-sm">
+            <CardContent className="p-6">
+              <div className="flex items-start justify-between">
+                {/* Información del servidor */}
+                <div className="flex-1">
+                  <div className="flex items-center space-x-3 mb-3">
+                    <h3 className="text-xl font-bold text-white">{server.title}</h3>
+                    <div className="flex items-center space-x-2">
+                      {getStatusBadge(server.status)}
+                      {server.category && getCategoryBadge(server.category.name)}
+                      {server.country && getCountryBadge(server.country)}
+                      {server.experience && getExperienceBadge(server.experience)}
                     </div>
-                    
-                    <div className="flex flex-wrap items-center gap-2 mb-3">
-                      <Badge 
-                        variant="outline" 
-                        className={`${getStatusColor(server.status)} text-white border-0`}
-                      >
-                        {getStatusIcon(server.status)}
-                        <span className="ml-1">{getStatusText(server.status)}</span>
-                      </Badge>
-                      
-                      {server.category && (
-                        <Badge variant="outline" className="text-cyan-400 border-cyan-400">
-                          <Gamepad2 className="h-3 w-3 mr-1" />
-                          {server.category.name}
-                        </Badge>
-                      )}
-                      
-                      {server.country && (
-                        <Badge variant="outline" className="text-slate-300 border-slate-500">
-                          <MapPin className="h-3 w-3 mr-1" />
-                          {server.country}
-                        </Badge>
-                      )}
-                      
-                      {server.experience && (
-                        <Badge variant="outline" className="text-yellow-400 border-yellow-400">
-                          <TrendingUp className="h-3 w-3 mr-1" />
-                          {server.experience}x EXP
-                        </Badge>
-                      )}
-                    </div>
-                    
-                    <CardDescription className="text-slate-300 text-sm">
-                      ID: {server.id} • Creado: {new Date(server.created_at).toLocaleDateString()}
-                    </CardDescription>
                   </div>
-                  
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => window.open(`/vote/${server.id}`, '_blank')}
-                      className="text-cyan-400 border-cyan-400 hover:bg-cyan-400/10"
-                    >
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                    
-                    {server.website && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => window.open(server.website!, '_blank')}
-                        className="text-blue-400 border-blue-400 hover:bg-blue-400/10"
-                      >
-                        <ExternalLink className="h-4 w-4" />
-                      </Button>
+
+                  <div className="text-slate-400 text-sm mb-3">
+                    ID: {server.id} • Creado: {new Date(server.created_at).toLocaleDateString('es-ES')}
+                  </div>
+
+                  {server.description && (
+                    <p className="text-slate-300 text-sm mb-4 leading-relaxed">
+                      {server.description}
+                    </p>
+                  )}
+
+                  <div className="grid grid-cols-3 gap-4 text-sm">
+                    {server.version && (
+                      <div>
+                        <span className="text-slate-500">📋 Versión:</span>
+                        <p className="text-slate-300">{server.version}</p>
+                      </div>
                     )}
-                    
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="text-slate-300 border-slate-600 hover:bg-slate-600/50"
-                      disabled
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="text-red-400 border-red-400 hover:bg-red-400/10"
-                          disabled={deletingId === server.id}
-                        >
-                          {deletingId === server.id ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <Trash2 className="h-4 w-4" />
-                          )}
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent className="bg-slate-800 border-slate-700">
-                        <AlertDialogHeader>
-                          <AlertDialogTitle className="text-white">
-                            ¿Eliminar servidor?
-                          </AlertDialogTitle>
-                          <AlertDialogDescription className="text-slate-300">
-                            Esta acción no se puede deshacer. El servidor &quot;{server.title}&quot; será eliminado permanentemente.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel className="bg-slate-700 text-white border-slate-600">
-                            Cancelar
-                          </AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={() => handleDeleteServer(server.id)}
-                            className="bg-red-600 hover:bg-red-700 text-white"
-                          >
-                            Eliminar
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
+                    {server.max_level && (
+                      <div>
+                        <span className="text-slate-500">🏆 Nivel máx:</span>
+                        <p className="text-slate-300">{server.max_level}</p>
+                      </div>
+                    )}
+                    {server.language && (
+                      <div>
+                        <span className="text-slate-500">🌐 Idioma:</span>
+                        <p className="text-slate-300">{server.language}</p>
+                      </div>
+                    )}
                   </div>
                 </div>
-              </CardHeader>
-              
-              {server.description && (
-                <CardContent className="pt-0">
-                  <p className="text-slate-300 text-sm leading-relaxed">
-                    {server.description}
-                  </p>
+
+                {/* Botones de acción */}
+                <div className="flex items-center space-x-2 ml-6">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => router.push(`/vote/${server.id}`)}
+                    className="text-green-400 border-green-500/30 hover:bg-green-500/20"
+                  >
+                    <Eye className="h-4 w-4" />
+                  </Button>
                   
-                  <div className="flex items-center gap-4 mt-4 text-xs text-slate-400">
-                    {server.version && (
-                      <div className="flex items-center gap-1">
-                        <Target className="h-3 w-3" />
-                        <span>Versión: {server.version}</span>
-                      </div>
-                    )}
-                    
-                    {server.max_level && (
-                      <div className="flex items-center gap-1">
-                        <TrendingUp className="h-3 w-3" />
-                        <span>Nivel máx: {server.max_level}</span>
-                      </div>
-                    )}
-                    
-                    <div className="flex items-center gap-1">
-                      <Globe className="h-3 w-3" />
-                      <span>Idioma: {server.language}</span>
-                    </div>
-                  </div>
-                </CardContent>
-              )}
-            </Card>
-          ))}
-        </div>
-      )}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => router.push(`/info/${server.id}`)}
+                    className="text-blue-400 border-blue-500/30 hover:bg-blue-500/20"
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                  </Button>
+                  
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => onEditServer(server)}
+                    className="text-slate-300 border-slate-600 hover:text-white hover:border-cyan-500"
+                  >
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                  
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="text-red-400 border-red-500/30 hover:bg-red-500/20"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
     </div>
-  );
+  )
 } 

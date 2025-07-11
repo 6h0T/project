@@ -22,7 +22,7 @@ export default function Footer() {
             </div>
             <p className="text-slate-400 text-sm leading-relaxed mb-4">
               Descubre los mejores servidores privados de MMORPG. Conecta con miles de jugadores 
-              en Lineage II, Aion Online, MU Online, Perfect World, Counter Strike y World of Warcraft.
+              en Lineage II, Aion Online, MU Online, Perfect World, Ragnarok Online y Silkroad.
             </p>
             <div className="flex items-center space-x-4">
               <ClientIPDisplay />
@@ -81,13 +81,13 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="/counter-strike" className="text-slate-400 hover:text-cyan-400 text-sm transition-colors">
-                  Counter Strike
+                <Link href="/ragnarok-online" className="text-slate-400 hover:text-cyan-400 text-sm transition-colors">
+                  Ragnarok Online
                 </Link>
               </li>
               <li>
-                <Link href="/wow" className="text-slate-400 hover:text-cyan-400 text-sm transition-colors">
-                  World of Warcraft
+                <Link href="/silkroad" className="text-slate-400 hover:text-cyan-400 text-sm transition-colors">
+                  Silkroad
                 </Link>
               </li>
             </ul>

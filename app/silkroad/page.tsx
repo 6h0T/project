@@ -11,8 +11,8 @@ import {
   ServerItem 
 } from '@/lib/serverFilters'
 
-export default function WoWPage() {
-  const { premiumServers, normalServers, totalServers, loading, error, refetch } = useServers('wow');
+export default function SilkroadPage() {
+  const { premiumServers, normalServers, totalServers, loading, error, refetch } = useServers('silkroad');
   
   // Estados para filtros
   const [searchTerm, setSearchTerm] = useState('');
@@ -59,8 +59,8 @@ export default function WoWPage() {
   if (loading) {
     return (
       <GameLayout
-        title="World of Warcraft"
-        description="For Azeroth!"
+        title="Silkroad"
+        description="The Ancient Path"
         totalServers={0}
         bgImage="https://images.pexels.com/photos/163077/mario-luigi-yoschi-figures-163077.jpeg"
         searchTerm={searchTerm}
@@ -85,8 +85,8 @@ export default function WoWPage() {
   if (error) {
     return (
       <GameLayout
-        title="World of Warcraft"
-        description="For Azeroth!"
+        title="Silkroad"
+        description="The Ancient Path"
         totalServers={0}
         bgImage="https://images.pexels.com/photos/163077/mario-luigi-yoschi-figures-163077.jpeg"
         searchTerm={searchTerm}
@@ -120,8 +120,8 @@ export default function WoWPage() {
 
   return (
     <GameLayout
-      title="World of Warcraft"
-      description="For Azeroth!"
+      title="Silkroad"
+      description="The Ancient Path"
       totalServers={filteredServers.length}
       bgImage="https://images.pexels.com/photos/163077/mario-luigi-yoschi-figures-163077.jpeg"
       searchTerm={searchTerm}
@@ -177,7 +177,7 @@ export default function WoWPage() {
             )}
             {chronicleFilter && (
               <span className="px-2 py-1 bg-slate-700 text-slate-300 rounded text-sm">
-                Expansión: {chronicleFilter}
+                Versión: {chronicleFilter}
               </span>
             )}
           </div>
@@ -185,4 +185,4 @@ export default function WoWPage() {
       )}
     </GameLayout>
   );
-}
+} 

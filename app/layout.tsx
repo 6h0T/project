@@ -8,7 +8,7 @@ const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
   title: 'Private Gaming Servers Hub',
-  description: 'Discover the best private gaming servers for Lineage II, Aion Online, Mu Online, Perfect World, Counter Strike, and World of Warcraft',
+  description: 'Discover the best private gaming servers for Lineage II, Aion Online, Mu Online, Perfect World, Ragnarok Online, and Silkroad',
 };
 
 export default function RootLayout({
