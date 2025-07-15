@@ -1,0 +1,20 @@
+{
+  "enabled": true,
+  "name": "i18next Internationalization Setup",
+  "description": "Implements i18next internationalization throughout the project with support for English, Spanish, and Portuguese languages, including a shadcn dropdown component for language selection",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "package.json",
+      "app/layout.tsx",
+      "components/Navbar.tsx",
+      "lib/utils.ts",
+      "next.config.js"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "I need to implement i18next internationalization in this Next.js project. Please:\n\n1. Install and configure i18next, react-i18next, and i18next-browser-languagedetector packages\n2. Create translation files for English (en), Spanish (es), and Portuguese (pt) in a locales directory\n3. Set up i18next configuration with proper namespace structure for the gaming server platform\n4. Create a language switcher dropdown component using shadcn/ui components\n5. Integrate the language dropdown into the Navbar component\n6. Add i18next provider to the root layout\n7. Update key components to use translation hooks (t function)\n8. Ensure proper SSR support for Next.js App Router\n9. Follow best practices for internationalization in React applications\n10. Include translations for common UI elements, navigation, forms, and gaming-specific terminology\n\nFocus on the main user-facing components first: Navbar, ServerCard, AuthModal, and key pages. Use proper namespacing for different sections of the application."
+  }
+}

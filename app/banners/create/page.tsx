@@ -37,76 +37,56 @@ interface Banner {
 }
 
 const bannerPositions = [
+  // Página Principal
   { 
-    value: 'top-1', 
-    label: 'Banner Superior #1 (468x60)', 
-    cost: 1, 
-    description: 'Posición premium en la parte superior izquierda',
-    dimensions: '468x60'
+    value: 'home-top-1', 
+    label: 'Banner Superior Izquierdo (468x60)', 
+    cost: 2, 
+    description: 'Página principal - Posición premium superior izquierda',
+    dimensions: '468x60',
+    page: 'Página Principal'
   },
   { 
-    value: 'top-2', 
-    label: 'Banner Superior #2 (468x60)', 
-    cost: 1, 
-    description: 'Posición premium en la parte superior derecha',
-    dimensions: '468x60'
+    value: 'home-top-2', 
+    label: 'Banner Superior Derecho (468x60)', 
+    cost: 2, 
+    description: 'Página principal - Posición premium superior derecha',
+    dimensions: '468x60',
+    page: 'Página Principal'
   },
   { 
-    value: 'sidebar-1', 
-    label: 'Banner Lateral #1 (178x78)', 
-    cost: 1, 
-    description: 'Banner lateral superior',
-    dimensions: '178x78'
+    value: 'home-sidebar-right', 
+    label: 'Banner Lateral Derecho (280x500)', 
+    cost: 3, 
+    description: 'Página principal - Sidebar derecho con alta visibilidad',
+    dimensions: '280x500',
+    page: 'Página Principal'
   },
   { 
-    value: 'sidebar-2', 
-    label: 'Banner Lateral #2 (178x78)', 
+    value: 'home-recent-servers', 
+    label: 'Banner Servidores Recientes (280x200)', 
     cost: 1, 
-    description: 'Banner lateral medio',
-    dimensions: '178x78'
+    description: 'Página principal - Área de servidores recientes',
+    dimensions: '280x200',
+    page: 'Página Principal'
+  },
+  // Página de Votación
+  { 
+    value: 'vote-left-skyscraper', 
+    label: 'Banner Izquierdo Votación (250x600)', 
+    cost: 4, 
+    description: 'Página de votación - Lateral izquierdo, máxima exposición',
+    dimensions: '250x600',
+    page: 'Página de Votación'
   },
   { 
-    value: 'sidebar-3', 
-    label: 'Banner Lateral #3 (178x78)', 
-    cost: 1, 
-    description: 'Banner lateral inferior',
-    dimensions: '178x78'
-  },
-  { 
-    value: 'sidebar-4', 
-    label: 'Banner Lateral #4 (178x78)', 
-    cost: 1, 
-    description: 'Banner lateral extra',
-    dimensions: '178x78'
-  },
-  { 
-    value: 'sidebar-5', 
-    label: 'Banner Lateral #5 (178x78)', 
-    cost: 1, 
-    description: 'Banner lateral final',
-    dimensions: '178x78'
-  },
-  { 
-    value: 'content-1', 
-    label: 'Banner Contenido #1 (300x250)', 
-    cost: 1, 
-    description: 'Banner en área de contenido izquierda',
-    dimensions: '300x250'
-  },
-  { 
-    value: 'content-2', 
-    label: 'Banner Contenido #2 (300x250)', 
-    cost: 1, 
-    description: 'Banner en área de contenido derecha',
-    dimensions: '300x250'
-  },
-  { 
-    value: 'right-skyscraper', 
-    label: 'Banner Rascacielos (120x600)', 
-    cost: 1, 
-    description: 'Banner vertical en la barra lateral derecha',
-    dimensions: '120x600'
-  },
+    value: 'vote-right-skyscraper', 
+    label: 'Banner Derecho Votación (250x600)', 
+    cost: 4, 
+    description: 'Página de votación - Lateral derecho, máxima exposición',
+    dimensions: '250x600',
+    page: 'Página de Votación'
+  }
 ]
 
 const durations = [
@@ -259,6 +239,20 @@ export default function CreateBannerPage() {
       const endDate = new Date()
       endDate.setDate(startDate.getDate() + parseInt(formData.duration))
 
+      // Validar si el banner puede ser auto-aprobado
+      const { validateBanner } = await import('@/lib/bannerValidation')
+      const validation = validateBanner({
+        title: formData.title,
+        description: formData.description || null,
+        image_url: imageUrl,
+        target_url: formData.targetUrl,
+        position: formData.position
+      })
+
+      // Determinar estado inicial del banner
+      const initialStatus = validation.canAutoApprove ? 'active' : 'pending'
+      const initialStartDate = validation.canAutoApprove ? startDate.toISOString() : null
+
       const { data: banner, error: bannerError } = await supabase
         .from('banners')
         .insert({
@@ -269,9 +263,9 @@ export default function CreateBannerPage() {
           target_url: formData.targetUrl,
           position: formData.position,
           game_category: 'all',
-          status: 'pending',
+          status: initialStatus,
           credits_cost: cost,
-          start_date: startDate.toISOString(),
+          start_date: initialStartDate,
           end_date: endDate.toISOString(),
         })
         .select()
@@ -287,8 +281,14 @@ export default function CreateBannerPage() {
 
       if (updateError) throw updateError
 
-      setMessage('Banner creado exitosamente y enviado para revisión.')
-      setMessageType('success')
+      // Mensaje personalizado según el estado del banner
+      if (validation.canAutoApprove) {
+        setMessage(`¡Banner creado y aprobado automáticamente! Ya está activo y visible en el sitio. (Score de validación: ${validation.score}%)`)
+        setMessageType('success')
+      } else {
+        setMessage(`Banner creado exitosamente y enviado para revisión manual. Para aprobación automática, asegúrate de que la descripción tenga al menos 120 caracteres. (Score actual: ${validation.score}%)`)
+        setMessageType('info')
+      }
       
       // Reset form
       setFormData({

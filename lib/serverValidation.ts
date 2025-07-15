@@ -9,7 +9,7 @@ export const REQUIRED_FIELDS = {
   regular_servers: ['title', 'description', 'ip', 'category_id']
 } as const;
 
-export const MIN_DESCRIPTION_LENGTH = 50;
+export const MIN_DESCRIPTION_LENGTH = 120;
 export const MAX_TITLE_LENGTH = 100;
 export const MIN_TITLE_LENGTH = 5;
 export const AUTO_APPROVAL_THRESHOLD = 80; // Score mínimo para aprobación automática

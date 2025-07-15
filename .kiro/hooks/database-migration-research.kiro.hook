@@ -1,0 +1,22 @@
+{
+  "enabled": true,
+  "name": "Database Migration Research",
+  "description": "Investigates the possibility of migrating the entire database from the well-known project located at E:\\Descargas hasta el 11-07\\well-known to the current project's Supabase database",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "lib/database.ts",
+      "lib/supabase.ts",
+      "supabase/migrations/*",
+      "supabase_setup.sql",
+      "verificar_estructura_user_profiles.sql",
+      "verificar_estructura_user_profiles_corregido.sql",
+      "E:\\Descargas hasta el 11-07\\well-known"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "Analyze the current Supabase database structure and research the feasibility of migrating data from the well-known project database. Compare database schemas, identify potential compatibility issues, data transformation requirements, and provide a detailed migration strategy including: 1) Current database structure analysis, 2) Required schema modifications, 3) Data mapping strategies, 4) Migration script recommendations, 5) Potential risks and mitigation strategies. Focus on preserving data integrity while adapting to the current Supabase setup."
+  }
+}

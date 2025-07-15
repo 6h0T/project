@@ -105,7 +105,8 @@ export default function BuyCreditsPage() {
   
   // Calcular precio final con comisiones
   const calculateFinalPrice = () => {
-    let basePrice = creditAmount // 1 crédito = 1 USD
+    // CONVERSION_RATE: 1 crédito = 1 USD - Modificar aquí para cambiar la conversión
+    let basePrice = creditAmount * 1 // 1 crédito = 1 USD
     
     if (selectedPayment === 'paypal') {
       const paypalMethod = PAYMENT_METHODS.paypal

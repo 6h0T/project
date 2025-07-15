@@ -14,16 +14,14 @@ interface BannerImageUploadProps {
 }
 
 const positionDimensions: { [key: string]: { width: number; height: number } } = {
-  'top-1': { width: 468, height: 60 },
-  'top-2': { width: 468, height: 60 },
-  'sidebar-1': { width: 178, height: 78 },
-  'sidebar-2': { width: 178, height: 78 },
-  'sidebar-3': { width: 178, height: 78 },
-  'sidebar-4': { width: 178, height: 78 },
-  'sidebar-5': { width: 178, height: 78 },
-  'content-1': { width: 300, height: 250 },
-  'content-2': { width: 300, height: 250 },
-  'right-skyscraper': { width: 120, height: 600 },
+  // Página Principal
+  'home-top-1': { width: 468, height: 60 },
+  'home-top-2': { width: 468, height: 60 },
+  'home-sidebar-right': { width: 280, height: 500 },
+  'home-recent-servers': { width: 280, height: 200 },
+  // Página de Votación
+  'vote-left-skyscraper': { width: 250, height: 600 },
+  'vote-right-skyscraper': { width: 250, height: 600 },
 }
 
 export default function BannerImageUpload({ 
@@ -74,46 +72,26 @@ export default function BannerImageUpload({
       const img = new Image()
 
       img.onload = () => {
-        // Calcular dimensiones manteniendo la proporción
-        const imgAspectRatio = img.width / img.height
-        const targetAspectRatio = targetWidth / targetHeight
-
-        let renderWidth = targetWidth
-        let renderHeight = targetHeight
-
-        if (imgAspectRatio > targetAspectRatio) {
-          // La imagen es más ancha, ajustar por altura
-          renderHeight = targetHeight
-          renderWidth = targetHeight * imgAspectRatio
-        } else {
-          // La imagen es más alta, ajustar por anchura
-          renderWidth = targetWidth
-          renderHeight = targetWidth / imgAspectRatio
-        }
-
-        // Configurar canvas con las dimensiones objetivo
+        // Configurar canvas con las dimensiones exactas del banner
         canvas.width = targetWidth
         canvas.height = targetHeight
 
         // Limpiar canvas con fondo transparente
         ctx!.clearRect(0, 0, targetWidth, targetHeight)
 
-        // Centrar la imagen en el canvas
-        const offsetX = (targetWidth - renderWidth) / 2
-        const offsetY = (targetHeight - renderHeight) / 2
+        // Ajustar la imagen EXACTAMENTE a las dimensiones del banner
+        // Sin mantener proporción - se estira/comprime para ajustarse perfectamente
+        ctx!.drawImage(img, 0, 0, targetWidth, targetHeight)
 
-        // Dibujar la imagen redimensionada y centrada
-        ctx!.drawImage(img, offsetX, offsetY, renderWidth, renderHeight)
-
-        // Convertir a blob y data URL
+        // Convertir a blob y data URL con alta calidad
         canvas.toBlob((blob) => {
           if (blob) {
-            const dataUrl = canvas.toDataURL('image/png', 0.9)
+            const dataUrl = canvas.toDataURL('image/png', 0.95)
             resolve({ blob, dataUrl })
           } else {
             reject(new Error('Error al procesar la imagen'))
           }
-        }, 'image/png', 0.9)
+        }, 'image/png', 0.95)
       }
 
       img.onerror = () => reject(new Error('Error al cargar la imagen'))
@@ -199,7 +177,7 @@ export default function BannerImageUpload({
             <Info className="h-4 w-4 text-blue-400 mt-0.5 flex-shrink-0" />
             <div className="text-xs text-blue-300">
               <p className="font-medium">Dimensiones requeridas: {dimensions.width}x{dimensions.height} píxeles</p>
-              <p>Tu imagen se ajustará automáticamente a estas dimensiones manteniendo la proporción</p>
+              <p>Tu imagen se ajustará automáticamente a estas dimensiones exactas</p>
             </div>
           </div>
         </div>

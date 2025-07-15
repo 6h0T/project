@@ -21,6 +21,8 @@ import {
 } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import CountryFlag from './CountryFlag'
+import BannerDisplay from './BannerDisplay'
+import { useBanners } from '@/hooks/useBanners'
 
 interface Server {
   id: number
@@ -70,6 +72,7 @@ interface VotePageProps {
 export default function VotePage({ server, onOpenAuth }: VotePageProps) {
   const { user } = useAuth()
   const router = useRouter()
+  const { getBannerByPosition } = useBanners()
   const [showAuthModal, setShowAuthModal] = useState(false)
   const [voteStatus, setVoteStatus] = useState<VoteStatus>({
     canVote: true,
@@ -278,29 +281,23 @@ export default function VotePage({ server, onOpenAuth }: VotePageProps) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 relative">
       
-      {/* Banners en los bordes extremos del viewport */}
-      <div className="fixed left-4 top-1/2 -translate-y-1/2 z-10 hidden 2xl:block">
-        <div className="w-[250px] h-[600px] bg-slate-800/50 border-2 border-dashed border-slate-600 rounded-lg flex flex-col items-center justify-center text-slate-400 hover:border-slate-500 transition-colors duration-200">
-          <div className="text-center p-4">
-            <div className="w-16 h-16 bg-slate-700 rounded-lg flex items-center justify-center mb-4 mx-auto">
-              <Star className="h-8 w-8 text-slate-500" />
-            </div>
-            <p className="text-sm font-medium mb-2">Banner Space</p>
-            <p className="text-xs text-slate-500">250x600px</p>
-          </div>
-        </div>
+      {/* Banners laterales reales - No se mueven con scroll */}
+      <div className="absolute left-4 top-32 z-10 hidden 2xl:block">
+        <BannerDisplay
+          banner={getBannerByPosition('vote-left-skyscraper')}
+          position="vote-left-skyscraper"
+          dimensions={{ width: 250, height: 600 }}
+          showPlaceholder={true}
+        />
       </div>
 
-      <div className="fixed right-4 top-1/2 -translate-y-1/2 z-10 hidden 2xl:block">
-        <div className="w-[250px] h-[600px] bg-slate-800/50 border-2 border-dashed border-slate-600 rounded-lg flex flex-col items-center justify-center text-slate-400 hover:border-slate-500 transition-colors duration-200">
-          <div className="text-center p-4">
-            <div className="w-16 h-16 bg-slate-700 rounded-lg flex items-center justify-center mb-4 mx-auto">
-              <Star className="h-8 w-8 text-slate-500" />
-            </div>
-            <p className="text-sm font-medium mb-2">Banner Space</p>
-            <p className="text-xs text-slate-500">250x600px</p>
-          </div>
-        </div>
+      <div className="absolute right-4 top-32 z-10 hidden 2xl:block">
+        <BannerDisplay
+          banner={getBannerByPosition('vote-right-skyscraper')}
+          position="vote-right-skyscraper"
+          dimensions={{ width: 250, height: 600 }}
+          showPlaceholder={true}
+        />
       </div>
       
       {/* Header compacto con botón de regreso */}

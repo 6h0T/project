@@ -5,8 +5,10 @@ import { Search, Filter, TrendingUp, BarChart3, HelpCircle } from 'lucide-react'
 import CountryFlag from './CountryFlag';
 import ClientIPDisplay from './ClientIPDisplay';
 import BannerCard from './BannerCard';
+import BannerDisplay from './BannerDisplay';
 import { popularCountries, getCountryName } from '@/lib/countries';
 import RecentServers from './RecentServers';
+import { useBanners } from '@/hooks/useBanners';
 
 interface GameLayoutProps {
   title: string;
@@ -40,6 +42,7 @@ export default function GameLayout({
   availableChronicles = []
 }: GameLayoutProps) {
   const isLineage = title === "Lineage II";
+  const { getBannerByPosition, loading: bannersLoading } = useBanners();
   
   // Usar la imagen específica de Lineage II si es el caso
   const headerBgImage = isLineage 
@@ -65,7 +68,7 @@ export default function GameLayout({
   };
 
   return (
-    <div className="h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex flex-col overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex flex-col">
       
       {/* Hero Section - Más compacto para dar más espacio al contenido */}
       <div 
@@ -101,25 +104,27 @@ export default function GameLayout({
       {/* Banner Container - 180px de alto con padding */}
       <div className="flex-shrink-0 h-[180px] pt-2 pb-2">
         <div className="max-w-9xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex items-center justify-center">
-          {/* 2 banners con estructura de card y 30px de espacio entre ellos */}
+          {/* 2 banners reales con 30px de espacio entre ellos */}
           <div className="flex justify-center items-center gap-[30px]">
-            <BannerCard 
-              title="Banner Superior 1"
-              subtitle="Espacio publicitario"
-              size="medium"
+            <BannerDisplay
+              banner={getBannerByPosition('home-top-1')}
+              position="home-top-1"
+              dimensions={{ width: 468, height: 60 }}
+              showPlaceholder={true}
             />
-            <BannerCard 
-              title="Banner Superior 2"
-              subtitle="Espacio publicitario"
-              size="medium"
+            <BannerDisplay
+              banner={getBannerByPosition('home-top-2')}
+              position="home-top-2"
+              dimensions={{ width: 468, height: 60 }}
+              showPlaceholder={true}
             />
           </div>
         </div>
       </div>
 
-      {/* Main Content - Optimizado para usar más espacio del viewport */}
-      <div className="flex-1 min-h-0 max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
-        <div className="grid grid-cols-12 gap-6 h-full">
+      {/* Main Content - Altura fija para contener el grid de 1200px */}
+      <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 pb-8" style={{ height: '1050px' }}>
+        <div className="grid grid-cols-12 gap-6 h-full" style={{ height: '1200px' }}>
           
           {/* Sidebar Left - Más compacto */}
           <div className="col-span-12 lg:col-span-2 space-y-3 overflow-hidden">
@@ -239,14 +244,13 @@ export default function GameLayout({
               </div>
             </div>
 
-            {/* Área de tarjetas con scroll optimizada - 50% más altura */}
-            <div className="flex-1 overflow-hidden" style={{ minHeight: 'calc(225vh - 1320px)' }}>
-              {/* Contenedor de scroll con altura aumentada 50% */}
+            {/* Área de tarjetas con scroll - Altura fija y simple */}
+            <div className="flex-1 overflow-hidden">
+              {/* Contenedor de scroll con altura fija de 800px */}
               <div 
-                className="h-full overflow-y-auto px-4 pt-1 pb-6 space-y-3 scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-slate-800"
+                className="overflow-y-auto px-4 pt-1 pb-6 space-y-3 scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-slate-800"
                 style={{ 
-                  maxHeight: 'calc(225vh - 480px)',
-                  minHeight: 'calc(225vh - 480px)'
+                  height: '800px'
                 }}
               >
                 {children}
@@ -257,15 +261,28 @@ export default function GameLayout({
           {/* Sidebar Right - Más compacto */}
           <div className="col-span-12 lg:col-span-2 space-y-3 overflow-hidden">
             
-            {/* Banner Lateral */}
-            <BannerCard 
-              title="Banner 460x280"
-              subtitle="Espacio publicitario"
-              size="large"
+            {/* Banner Lateral Derecho */}
+            <BannerDisplay
+              banner={getBannerByPosition('home-sidebar-right')}
+              position="home-sidebar-right"
+              dimensions={{ width: 280, height: 500 }}
+              showPlaceholder={true}
+              className="w-full"
             />
 
-            {/* Servidores Recientes - Componente funcional */}
-            <RecentServers />
+            {/* Área de Servidores Recientes con banner integrado */}
+            <div className="space-y-2">
+              <RecentServers />
+              
+              {/* Banner en área de servidores recientes */}
+              <BannerDisplay
+                banner={getBannerByPosition('home-recent-servers')}
+                position="home-recent-servers"
+                dimensions={{ width: 280, height: 200 }}
+                showPlaceholder={true}
+                className="w-full"
+              />
+            </div>
           </div>
         </div>
       </div>
