@@ -9,8 +9,8 @@ interface BannerCardProps {
 
 export default function BannerCard({ title, subtitle, size, className = '' }: BannerCardProps) {
   const sizeClasses = {
-    large: 'w-full h-72', // Para el banner lateral (460x280 equivalente)
-    medium: 'w-full h-16'  // Para los banners superiores (356x78 equivalente)
+    large: 'w-[280px] h-[500px]', // Banner lateral 280x550px
+    medium: 'w-[450px] h-[120px]'  // Para los banners superiores 450x120px
   };
 
   const contentClasses = {

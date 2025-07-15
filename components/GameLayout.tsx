@@ -98,11 +98,11 @@ export default function GameLayout({
         </div>
       </div>
 
-      {/* Banner Container - Más compacto */}
-      <div className="flex-shrink-0 h-20 pt-2 pb-2">
+      {/* Banner Container - 180px de alto con padding */}
+      <div className="flex-shrink-0 h-[180px] pt-2 pb-2">
         <div className="max-w-9xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex items-center justify-center">
-          {/* 2 banners con estructura de card */}
-          <div className="grid grid-cols-2 gap-2 w-full max-w-3xl">
+          {/* 2 banners con estructura de card y 30px de espacio entre ellos */}
+          <div className="flex justify-center items-center gap-[30px]">
             <BannerCard 
               title="Banner Superior 1"
               subtitle="Espacio publicitario"
@@ -118,7 +118,7 @@ export default function GameLayout({
       </div>
 
       {/* Main Content - Optimizado para usar más espacio del viewport */}
-      <div className="flex-1 min-h-0 max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 pb-2">
+      <div className="flex-1 min-h-0 max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
         <div className="grid grid-cols-12 gap-6 h-full">
           
           {/* Sidebar Left - Más compacto */}
@@ -239,14 +239,14 @@ export default function GameLayout({
               </div>
             </div>
 
-            {/* Área de tarjetas con scroll optimizada - MÁS ALTURA PARA MOSTRAR LOS 3 PREMIUM */}
-            <div className="flex-1 overflow-hidden" style={{ minHeight: 'calc(100vh - 200px)' }}>
-              {/* Contenedor de scroll con altura optimizada para mostrar los 3 servidores premium */}
+            {/* Área de tarjetas con scroll optimizada - 50% más altura */}
+            <div className="flex-1 overflow-hidden" style={{ minHeight: 'calc(225vh - 1320px)' }}>
+              {/* Contenedor de scroll con altura aumentada 50% */}
               <div 
-                className="h-full overflow-y-auto px-4 pt-1 pb-4 space-y-3 scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-slate-800"
+                className="h-full overflow-y-auto px-4 pt-1 pb-6 space-y-3 scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-slate-800"
                 style={{ 
-                  maxHeight: 'calc(100vh - 200px)',
-                  minHeight: 'calc(100vh - 200px)'
+                  maxHeight: 'calc(225vh - 480px)',
+                  minHeight: 'calc(225vh - 480px)'
                 }}
               >
                 {children}
