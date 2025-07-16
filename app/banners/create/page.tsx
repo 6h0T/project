@@ -40,25 +40,33 @@ const bannerPositions = [
   // Página Principal
   { 
     value: 'home-top-1', 
-    label: 'Banner Superior Izquierdo (468x60)', 
+    label: 'Banner Superior Izquierdo (468x85)', 
     cost: 2, 
     description: 'Página principal - Posición premium superior izquierda',
-    dimensions: '468x60',
+    dimensions: '468x85',
     page: 'Página Principal'
   },
   { 
     value: 'home-top-2', 
-    label: 'Banner Superior Derecho (468x60)', 
+    label: 'Banner Superior Derecho (468x85)', 
     cost: 2, 
     description: 'Página principal - Posición premium superior derecha',
-    dimensions: '468x60',
+    dimensions: '468x85',
+    page: 'Página Principal'
+  },
+  { 
+    value: 'home-sidebar-left-bottom', 
+    label: 'Banner Lateral Izquierdo Inferior (280x500)', 
+    cost: 3, 
+    description: 'Página principal - Sidebar izquierdo inferior, alta visibilidad',
+    dimensions: '280x500',
     page: 'Página Principal'
   },
   { 
     value: 'home-sidebar-right', 
     label: 'Banner Lateral Derecho (280x500)', 
     cost: 3, 
-    description: 'Página principal - Sidebar derecho con alta visibilidad',
+    description: 'Página principal - Sidebar derecho, alta visibilidad',
     dimensions: '280x500',
     page: 'Página Principal'
   },

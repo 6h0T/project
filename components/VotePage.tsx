@@ -355,17 +355,50 @@ export default function VotePage({ server, onOpenAuth }: VotePageProps) {
                   </div>
                 </div>
                 
-                {/* Botón web alineado a la derecha */}
-                {server.website && (
-                  <div className="flex-shrink-0">
-                    <Button asChild className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600">
+                {/* Botones alineados a la derecha */}
+                <div className="flex-shrink-0 flex items-center space-x-3">
+                  {/* Botón de votación */}
+                  {voteStatus.canVote ? (
+                    <Button 
+                      onClick={handleVote} 
+                      disabled={loading || (showCaptcha && !captcha)}
+                      className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-bold py-2 px-6 rounded-xl shadow-lg hover:shadow-green-500/30 transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                    >
+                      {loading ? (
+                        <div className="flex items-center space-x-2">
+                          <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                          <span>Votando...</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center space-x-2">
+                          <TrendingUp className="h-4 w-4" />
+                          <span>¡VOTAR AHORA!</span>
+                        </div>
+                      )}
+                    </Button>
+                  ) : (
+                    <div className="text-orange-400 font-medium text-sm">
+                      {voteStatus.timeLeft ? (
+                        <span>Próximo voto en: {voteStatus.timeLeft.hours}h {voteStatus.timeLeft.minutes}m</span>
+                      ) : (
+                        <span>{voteStatus.message}</span>
+                      )}
+                    </div>
+                  )}
+                  
+                  {/* Botón web oficial con nuevo estilo */}
+                  {server.website && (
+                    <Button 
+                      asChild 
+                      className="bg-transparent border-2 border-white text-white hover:bg-transparent hover:border-white hover:text-white hover:shadow-[0_0_20px_rgba(255,255,255,0.5)] transition-all duration-300"
+                    >
                       <a href={server.website} target="_blank" rel="noopener noreferrer">
-                        <ExternalLink className="mr-2 h-4 w-4" />
-                        Visitar Web Oficial
+                        <ExternalLink className="mr-2 h-4 w-4 text-white" />
+                        <span className="text-white">Visitar Web Oficial</span>
                       </a>
                     </Button>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
 
               {/* Separador */}
@@ -479,111 +512,78 @@ export default function VotePage({ server, onOpenAuth }: VotePageProps) {
             </CardContent>
           </Card>
 
-          {/* Sistema de Votación - Más compacto */}
-          <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-md">
-            <CardContent className="py-6">
-              {/* Estado de votación */}
-              <div className="text-center space-y-4">
-                {voteStatus.canVote ? (
-                  <div className="space-y-4">
-                    <div className="text-lg text-green-400 font-medium">
-                      ✅ Puedes votar por este servidor
+          {/* Información adicional y captcha */}
+          {showCaptcha && (
+            <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-md">
+              <CardContent className="py-6">
+                <div className="text-center space-y-4">
+                  <div className="text-lg text-green-400 font-medium">
+                    ✅ Completa el captcha para votar
+                  </div>
+                  
+                  <div className="max-w-sm mx-auto space-y-3">
+                    <div className="text-sm text-slate-300">
+                      Completa el captcha para continuar:
                     </div>
-                    
-                    {/* Captcha para usuarios no logueados */}
-                    {showCaptcha && (
-                      <div className="max-w-sm mx-auto space-y-3">
-                        <div className="text-sm text-slate-300">
-                          Completa el captcha para continuar:
-                        </div>
-                        <div className="bg-slate-700/50 p-4 rounded-lg border border-slate-600">
-                          <div className="text-xl font-mono text-cyan-400 mb-3 text-center">
-                            {captchaQuestion}
-                          </div>
-                          <Input
-                            type="text"
-                            placeholder="Respuesta..."
-                            value={captcha}
-                            onChange={(e) => setCaptcha(e.target.value)}
-                            className="text-center bg-slate-800 border-slate-600 text-white"
-                          />
-                        </div>
+                    <div className="bg-slate-700/50 p-4 rounded-lg border border-slate-600">
+                      <div className="text-xl font-mono text-cyan-400 mb-3 text-center">
+                        {captchaQuestion}
                       </div>
-                    )}
-                    
-                    {/* Botón de votación centrado */}
-                    <div className="flex justify-center">
-                      <Button 
-                        onClick={handleVote} 
-                        disabled={loading || (showCaptcha && !captcha)}
-                        className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-bold py-4 px-8 text-lg rounded-xl shadow-lg hover:shadow-green-500/30 transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-                      >
-                        {loading ? (
-                          <div className="flex items-center space-x-2">
-                            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                            <span>Votando...</span>
-                          </div>
-                        ) : (
-                          <div className="flex items-center space-x-2">
-                            <TrendingUp className="h-5 w-5" />
-                            <span>¡VOTAR AHORA!</span>
-                          </div>
-                        )}
-                      </Button>
+                      <Input
+                        type="text"
+                        placeholder="Respuesta..."
+                        value={captcha}
+                        onChange={(e) => setCaptcha(e.target.value)}
+                        className="text-center bg-slate-800 border-slate-600 text-white"
+                      />
                     </div>
                   </div>
-                ) : (
-                  <div className="space-y-4">
-                    <div className="text-lg text-orange-400 font-medium">
-                      ⏳ {voteStatus.message}
-                    </div>
-                    
-                    {voteStatus.timeLeft && (
-                      <div className="bg-slate-700/50 p-4 rounded-lg border border-slate-600 max-w-sm mx-auto">
-                        <div className="text-slate-300 text-sm mb-2">
-                          Tiempo restante para votar nuevamente:
-                        </div>
-                        <div className="text-2xl font-bold text-cyan-400">
-                          {voteStatus.timeLeft.hours}h {voteStatus.timeLeft.minutes}m
-                        </div>
-                      </div>
-                    )}
-                    
-                    {!user && (
-                      <div className="bg-blue-900/20 border border-blue-500/30 rounded-lg p-4 max-w-sm mx-auto">
-                        <h3 className="text-blue-400 font-medium mb-2">
-                          💡 ¿Sabías que...?
-                        </h3>
-                        <p className="text-blue-200 text-sm mb-3">
-                          Los usuarios registrados pueden votar más fácilmente y obtener beneficios adicionales.
-                        </p>
-                        <Button
-                          onClick={handleRegisterClick}
-                          variant="outline"
-                          size="sm"
-                          className="w-full border-blue-500 text-blue-400 hover:bg-blue-500/10"
-                        >
-                          <UserPlus className="mr-2 h-4 w-4" />
-                          Registrarse gratis
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
-                {/* Mensaje de resultado */}
-                {message && (
-                  <div className={`p-3 rounded-lg border text-center max-w-sm mx-auto ${
-                    messageType === 'success' 
-                      ? 'bg-green-900/20 border-green-500/30 text-green-400' 
-                      : 'bg-red-900/20 border-red-500/30 text-red-400'
-                  }`}>
-                    {message}
+          {/* Información para usuarios no registrados */}
+          {!user && !voteStatus.canVote && (
+            <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-md">
+              <CardContent className="py-6">
+                <div className="text-center">
+                  <div className="bg-blue-900/20 border border-blue-500/30 rounded-lg p-4 max-w-sm mx-auto">
+                    <h3 className="text-blue-400 font-medium mb-2">
+                      💡 ¿Sabías que...?
+                    </h3>
+                    <p className="text-blue-200 text-sm mb-3">
+                      Los usuarios registrados pueden votar más fácilmente y obtener beneficios adicionales.
+                    </p>
+                    <Button
+                      onClick={handleRegisterClick}
+                      variant="outline"
+                      size="sm"
+                      className="w-full border-blue-500 text-blue-400 hover:bg-blue-500/10"
+                    >
+                      <UserPlus className="mr-2 h-4 w-4" />
+                      Registrarse gratis
+                    </Button>
                   </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Mensaje de resultado */}
+          {message && (
+            <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-md">
+              <CardContent className="py-4">
+                <div className={`p-3 rounded-lg border text-center ${
+                  messageType === 'success' 
+                    ? 'bg-green-900/20 border-green-500/30 text-green-400' 
+                    : 'bg-red-900/20 border-red-500/30 text-red-400'
+                }`}>
+                  {message}
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
     </div>

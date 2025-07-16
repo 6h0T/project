@@ -109,13 +109,13 @@ export default function GameLayout({
             <BannerDisplay
               banner={getBannerByPosition('home-top-1')}
               position="home-top-1"
-              dimensions={{ width: 468, height: 60 }}
+              dimensions={{ width: 468, height: 85 }}
               showPlaceholder={true}
             />
             <BannerDisplay
               banner={getBannerByPosition('home-top-2')}
               position="home-top-2"
-              dimensions={{ width: 468, height: 60 }}
+              dimensions={{ width: 468, height: 85 }}
               showPlaceholder={true}
             />
           </div>
@@ -214,6 +214,15 @@ export default function GameLayout({
                 <ClientIPDisplay />
               </div>
             </div>
+
+            {/* Banner Lateral Izquierdo Inferior */}
+            <BannerDisplay
+              banner={getBannerByPosition('home-sidebar-left-bottom')}
+              position="home-sidebar-left-bottom"
+              dimensions={{ width: 280, height: 500 }}
+              showPlaceholder={true}
+              className="w-full"
+            />
           </div>
 
           {/* Main Content - Optimizado para mostrar más contenido sin scroll */}

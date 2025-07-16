@@ -15,10 +15,11 @@ interface BannerImageUploadProps {
 
 const positionDimensions: { [key: string]: { width: number; height: number } } = {
   // Página Principal
-  'home-top-1': { width: 468, height: 60 },
-  'home-top-2': { width: 468, height: 60 },
+  'home-top-1': { width: 468, height: 85 },
+  'home-top-2': { width: 468, height: 85 },
   'home-sidebar-right': { width: 280, height: 500 },
   'home-recent-servers': { width: 280, height: 200 },
+  'home-sidebar-left-bottom': { width: 280, height: 500 },
   // Página de Votación
   'vote-left-skyscraper': { width: 250, height: 600 },
   'vote-right-skyscraper': { width: 250, height: 600 },

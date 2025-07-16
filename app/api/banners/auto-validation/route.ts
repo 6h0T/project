@@ -217,7 +217,12 @@ export async function GET(): Promise<NextResponse> {
         minTitleLength: 5,
         maxTitleLength: 100,
         autoApprovalThreshold: 80
-      }
+      },
+      availablePositions: [
+        'home-top-1', 'home-top-2', 'home-sidebar-right', 
+        'home-recent-servers', 'home-sidebar-left-bottom',
+        'vote-left-skyscraper', 'vote-right-skyscraper'
+      ]
     };
 
     console.log('📊 [BANNER-AUTO-VALIDATION] Estadísticas:', stats);

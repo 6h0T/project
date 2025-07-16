@@ -29,10 +29,11 @@ export default function BannerPreview({ existingBanners, selectedPosition, previ
   // Definir posiciones reales según las páginas
   const bannerPositions = {
     homepage: {
-      'home-top-1': { label: 'Banner Superior Izquierdo', dimensions: '468x60', description: 'Página principal - Superior izquierdo', cost: 2 },
-      'home-top-2': { label: 'Banner Superior Derecho', dimensions: '468x60', description: 'Página principal - Superior derecho', cost: 2 },
+      'home-top-1': { label: 'Banner Superior Izquierdo', dimensions: '468x85', description: 'Página principal - Superior izquierdo', cost: 2 },
+      'home-top-2': { label: 'Banner Superior Derecho', dimensions: '468x85', description: 'Página principal - Superior derecho', cost: 2 },
       'home-sidebar-right': { label: 'Banner Lateral Derecho', dimensions: '280x500', description: 'Página principal - Sidebar derecho', cost: 3 },
-      'home-recent-servers': { label: 'Banner Servidores Recientes', dimensions: '280x200', description: 'Página principal - Área de servidores recientes', cost: 1 }
+      'home-recent-servers': { label: 'Banner Servidores Recientes', dimensions: '280x200', description: 'Página principal - Área de servidores recientes', cost: 1 },
+      'home-sidebar-left-bottom': { label: 'Banner Lateral Izquierdo Inferior', dimensions: '280x500', description: 'Página principal - Sidebar izquierdo inferior', cost: 3 }
     },
     votepage: {
       'vote-left-skyscraper': { label: 'Banner Izquierdo Votación', dimensions: '250x600', description: 'Página de votación - Lateral izquierdo', cost: 4 },
@@ -157,10 +158,10 @@ export default function BannerPreview({ existingBanners, selectedPosition, previ
         <div className="text-slate-300 text-xs">The Chronicles Continue</div>
       </div>
 
-      {/* Banners superiores */}
+      {/* Banners superiores - Dimensiones actualizadas */}
       <div className="flex justify-center items-center gap-8">
-        <BannerSlot position="home-top-1" className="w-[200px] h-[50px]" />
-        <BannerSlot position="home-top-2" className="w-[200px] h-[50px]" />
+        <BannerSlot position="home-top-1" className="w-[200px] h-[65px]" />
+        <BannerSlot position="home-top-2" className="w-[200px] h-[65px]" />
       </div>
 
       {/* Contenido principal con grid */}
@@ -181,6 +182,15 @@ export default function BannerPreview({ existingBanners, selectedPosition, previ
               <div className="h-2 bg-slate-600 rounded w-2/3"></div>
             </div>
           </div>
+          <div className="bg-slate-700/50 rounded p-2">
+            <div className="text-slate-300 text-xs font-medium mb-2">🌐 Tu Conexión</div>
+            <div className="space-y-1">
+              <div className="h-2 bg-slate-600 rounded"></div>
+            </div>
+          </div>
+          
+          {/* Banner Lateral Izquierdo Inferior */}
+          <BannerSlot position="home-sidebar-left-bottom" className="w-full h-[120px]" />
         </div>
 
         {/* Contenido central */}
