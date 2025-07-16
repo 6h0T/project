@@ -78,10 +78,23 @@ export async function POST(request: NextRequest) {
 
     // Si el pago fue completado, agregar créditos al usuario
     if (newStatus === 'completed') {
+      // Primero obtener los créditos actuales
+      const { data: userProfile, error: fetchError } = await supabase
+        .from('user_profiles')
+        .select('credits')
+        .eq('id', transaction.user_id)
+        .single()
+
+      if (fetchError || !userProfile) {
+        console.error('Error obteniendo perfil de usuario:', fetchError)
+        return NextResponse.json({ error: 'User profile not found' }, { status: 404 })
+      }
+
+      // Actualizar con los nuevos créditos
       const { error: creditsError } = await supabase
         .from('user_profiles')
         .update({
-          credits: supabase.sql`credits + ${transaction.credits_amount}`
+          credits: userProfile.credits + transaction.credits_amount
         })
         .eq('id', transaction.user_id)
 

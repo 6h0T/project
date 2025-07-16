@@ -84,16 +84,25 @@ export async function POST(request: NextRequest) {
 
       // Si el pago fue aprobado, agregar créditos al usuario en user_profiles
       if (newStatus === 'completed') {
-        const { error: creditsError } = await supabase
+        // Primero obtener los créditos actuales
+        const { data: userProfile, error: fetchUserError } = await supabase
           .from('user_profiles')
-          .update({
-            credits: supabase.sql`credits + ${transaction.credits_amount}`
-          })
+          .select('credits')
           .eq('id', transaction.user_id)
+          .single()
 
-        if (creditsError) {
-          console.error('Error adding credits:', creditsError)
-          // No retornamos error aquí para no afectar el webhook
+        if (!fetchUserError && userProfile) {
+          const { error: creditsError } = await supabase
+            .from('user_profiles')
+            .update({
+              credits: userProfile.credits + transaction.credits_amount
+            })
+            .eq('id', transaction.user_id)
+
+          if (creditsError) {
+            console.error('Error adding credits:', creditsError)
+            // No retornamos error aquí para no afectar el webhook
+          }
         }
 
         console.log(`MercadoPago payment completed: ${transaction.credits_amount} credits added to user ${transaction.user_id}`)

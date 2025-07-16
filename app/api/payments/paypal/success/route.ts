@@ -91,11 +91,23 @@ export async function GET(request: NextRequest) {
         return redirect('/buy-credits?payment=error&message=database_error')
       }
 
+      // Primero obtener los créditos actuales
+      const { data: userProfile, error: fetchUserError } = await supabase
+        .from('user_profiles')
+        .select('credits')
+        .eq('id', transaction.user_id)
+        .single()
+
+      if (fetchUserError || !userProfile) {
+        console.error('Error obteniendo perfil de usuario:', fetchUserError)
+        return redirect('/buy-credits?payment=error&message=user_profile_error')
+      }
+
       // Agregar créditos al usuario en user_profiles
       const { error: creditsError } = await supabase
         .from('user_profiles')
         .update({
-          credits: supabase.sql`credits + ${transaction.credits_amount}`
+          credits: userProfile.credits + transaction.credits_amount
         })
         .eq('id', transaction.user_id)
 
