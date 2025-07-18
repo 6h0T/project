@@ -78,14 +78,16 @@ export function useLineageServers(): UseLineageServersState {
       // Obtener servidores de ambas categorías de Lineage usando la nueva API
       const responses = await Promise.all([
         fetch('/api/servers?category=lineage-ii&limit=200'),
-        fetch('/api/servers?category=lineage-2&limit=200')
+        fetch('/api/servers?category=lineage-2&limit=200'),
+        fetch('/api/servers?limit=200') // También obtener todos como respaldo
       ])
 
       const results = await Promise.all(responses.map(r => r.json()))
       
       console.log('📊 Resultados por categoría:', {
         'lineage-ii': results[0]?.servers?.length || 0,
-        'lineage-2': results[1]?.servers?.length || 0
+        'lineage-2': results[1]?.servers?.length || 0,
+        'all': results[2]?.servers?.length || 0
       })
 
       // Combinar servidores de ambas categorías, evitando duplicados
@@ -94,7 +96,7 @@ export function useLineageServers(): UseLineageServersState {
 
       // Procesar todos los resultados
       results.forEach((result, index) => {
-        const categoryName = index === 0 ? 'Lineage II' : 'Lineage 2'
+        const categoryName = index === 0 ? 'Lineage II' : index === 1 ? 'Lineage 2' : 'All'
         
         if (result?.success && result?.servers) {
           result.servers.forEach((server: any) => {

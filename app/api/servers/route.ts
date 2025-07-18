@@ -164,8 +164,7 @@ export async function GET(request: NextRequest) {
         experience_rate,
         votes,
         is_premium,
-        is_approved,
-        server_categories(name, slug)
+        is_approved
       `)
       .or('approved.eq.true,is_approved.eq.true')
       .in('status', ['online', 'active'])
@@ -238,7 +237,7 @@ export async function GET(request: NextRequest) {
         isPremium: server.premium || false,
         website: server.website,
         ip: server.ip,
-        category: server.server_categories?.[0]?.name || 'Lineage 2',
+        category: getCategoryName(server.category_id),
         slug: server.slug,
         created_at: server.created_at,
         source: server.source
@@ -286,4 +285,27 @@ export async function GET(request: NextRequest) {
       error: 'Error interno del servidor' 
     }, { status: 500 })
   }
+}
+
+// Helper function to get category name by ID
+function getCategoryName(categoryId: number): string {
+  const categories: { [key: number]: string } = {
+    1: 'Lineage II',
+    2: 'Aion',
+    3: 'Mu Online',
+    4: 'Perfect World',
+    5: 'Counter-Strike',
+    6: 'World of Warcraft',
+    7: 'Ragnarok Online',
+    10: 'Minecraft',
+    12: 'World of Warcraft',
+    13: 'Silkroad Online',
+    15: 'Conquer Online',
+    16: 'Argentum Online',
+    17: 'Priston Tale',
+    18: 'Gunbound',
+    31: 'Lineage 2'
+  };
+  
+  return categories[categoryId] || `Categoría ${categoryId}`;
 }
