@@ -132,7 +132,7 @@ export default function CategoryPage() {
         isPremium: server.premium || server.is_premium || false,
         website: server.website,
         ip: server.ip || server.ip_address || '',
-        category: server.server_categories?.name || categoryData.name,
+        category: server.server_categories?.[0]?.name || categoryData.name,
         slug: server.slug,
         created_at: server.created_at,
         source: server.legacy_id ? 'imported' : 'created'
