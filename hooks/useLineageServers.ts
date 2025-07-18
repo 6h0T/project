@@ -75,126 +75,58 @@ export function useLineageServers(): UseLineageServersState {
 
       console.log('🔍 Fetching Lineage servers from both categories...')
 
-      // Obtener servidores de ambas categorías de Lineage
+      // Obtener servidores de ambas categorías de Lineage usando la nueva API
       const responses = await Promise.all([
-        fetch('/api/servers?category=lineage-ii&limit=100'),
-        fetch('/api/servers?category=lineage-2&limit=100'),
-        fetch('/api/servers?category=all&limit=100') // También incluir todos como respaldo
+        fetch('/api/servers?category=lineage-ii&limit=200'),
+        fetch('/api/servers?category=lineage-2&limit=200')
       ])
 
       const results = await Promise.all(responses.map(r => r.json()))
       
       console.log('📊 Resultados por categoría:', {
         'lineage-ii': results[0]?.servers?.length || 0,
-        'lineage-2': results[1]?.servers?.length || 0,
-        'all': results[2]?.servers?.length || 0
+        'lineage-2': results[1]?.servers?.length || 0
       })
 
       // Combinar servidores de ambas categorías, evitando duplicados
       const allServers: Server[] = []
       const seenIds = new Set<string>()
 
-      // Procesar servidores de lineage-ii (categoría 1)
-      if (results[0]?.success && results[0]?.servers) {
-        results[0].servers.forEach((server: any) => {
-          if (!seenIds.has(server.id.toString())) {
-            allServers.push({
-              id: server.id,
-              name: server.title || server.name,
-              title: server.title || server.name,
-              description: server.description || '',
-              country: server.country || 'International',
-              chronicle: server.version || server.chronicle || 'Unknown',
-              serverType: 'PvP',
-              platform: 'L2J',
-              players: server.players || Math.floor(Math.random() * 500) + 100,
-              votes: server.votes || 0,
-              uptime: server.uptime || '99.5%',
-              exp: server.exp || (server.experience ? `Exp x${server.experience}` : 'Exp x1'),
-              features: server.features || (server.premium ? ['Premium'] : ['Normal']),
-              rank: 0,
-              isPremium: server.isPremium || server.premium || false,
-              website: server.website,
-              ip: server.ip,
-              category: server.category || 'Lineage II',
-              slug: server.slug,
-              created_at: server.created_at,
-              source: server.source || 'lineage-ii'
-            })
-            seenIds.add(server.id.toString())
-          }
-        })
-      }
-
-      // Procesar servidores de lineage-2 (categoría 31)
-      if (results[1]?.success && results[1]?.servers) {
-        results[1].servers.forEach((server: any) => {
-          if (!seenIds.has(server.id.toString())) {
-            allServers.push({
-              id: server.id,
-              name: server.title || server.name,
-              title: server.title || server.name,
-              description: server.description || '',
-              country: server.country || 'International',
-              chronicle: server.version || server.chronicle || 'Unknown',
-              serverType: 'PvP',
-              platform: 'L2J',
-              players: server.players || Math.floor(Math.random() * 500) + 100,
-              votes: server.votes || 0,
-              uptime: server.uptime || '99.5%',
-              exp: server.exp || (server.experience ? `Exp x${server.experience}` : 'Exp x1'),
-              features: server.features || (server.premium ? ['Premium'] : ['Normal']),
-              rank: 0,
-              isPremium: server.isPremium || server.premium || false,
-              website: server.website,
-              ip: server.ip,
-              category: server.category || 'Lineage 2',
-              slug: server.slug,
-              created_at: server.created_at,
-              source: server.source || 'lineage-2'
-            })
-            seenIds.add(server.id.toString())
-          }
-        })
-      }
-
-      // Si no hay servidores en las categorías específicas, usar todos los servidores
-      // y filtrar solo los de Lineage
-      if (allServers.length === 0 && results[2]?.success && results[2]?.servers) {
-        results[2].servers.forEach((server: any) => {
-          // Filtrar solo servidores que contengan "lineage" en el nombre de categoría
-          const isLineageServer = server.category?.toLowerCase().includes('lineage') ||
-                                 server.title?.toLowerCase().includes('lineage') ||
-                                 server.title?.toLowerCase().includes('l2')
-          
-          if (isLineageServer && !seenIds.has(server.id.toString())) {
-            allServers.push({
-              id: server.id,
-              name: server.title || server.name,
-              title: server.title || server.name,
-              description: server.description || '',
-              country: server.country || 'International',
-              chronicle: server.version || server.chronicle || 'Unknown',
-              serverType: 'PvP',
-              platform: 'L2J',
-              players: server.players || Math.floor(Math.random() * 500) + 100,
-              votes: server.votes || 0,
-              uptime: server.uptime || '99.5%',
-              exp: server.exp || (server.experience ? `Exp x${server.experience}` : 'Exp x1'),
-              features: server.features || (server.premium ? ['Premium'] : ['Normal']),
-              rank: 0,
-              isPremium: server.isPremium || server.premium || false,
-              website: server.website,
-              ip: server.ip,
-              category: server.category || 'Lineage',
-              slug: server.slug,
-              created_at: server.created_at,
-              source: server.source || 'all'
-            })
-            seenIds.add(server.id.toString())
-          }
-        })
-      }
+      // Procesar todos los resultados
+      results.forEach((result, index) => {
+        const categoryName = index === 0 ? 'Lineage II' : 'Lineage 2'
+        
+        if (result?.success && result?.servers) {
+          result.servers.forEach((server: any) => {
+            if (!seenIds.has(server.id.toString())) {
+              allServers.push({
+                id: server.id,
+                name: server.title || server.name,
+                title: server.title || server.name,
+                description: server.description || '',
+                country: server.country || 'International',
+                chronicle: server.version || server.chronicle || 'Unknown',
+                serverType: server.serverType || 'PvP',
+                platform: server.platform || 'L2J',
+                players: server.players || Math.floor(Math.random() * 500) + 100,
+                votes: server.votes || 0,
+                uptime: server.uptime || '99.5%',
+                exp: server.exp || (server.experience ? `Exp x${server.experience}` : 'Exp x1'),
+                features: server.features || (server.isPremium ? ['Premium'] : ['Normal']),
+                rank: 0,
+                isPremium: server.isPremium || false,
+                website: server.website,
+                ip: server.ip,
+                category: server.category || categoryName,
+                slug: server.slug,
+                created_at: server.created_at,
+                source: server.source || 'imported'
+              })
+              seenIds.add(server.id.toString())
+            }
+          })
+        }
+      })
 
       // Ordenar por premium primero, luego por votos descendente
       allServers.sort((a, b) => {

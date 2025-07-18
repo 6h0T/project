@@ -3,7 +3,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import GameLayout from '@/components/GameLayout'
 import ServerCard from '@/components/ServerCard'
-import { useServers } from '@/hooks/useServers'
 import { useLineageServers } from '@/hooks/useLineageServers'
 import { 
   extractUniqueCountries, 

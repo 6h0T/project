@@ -141,10 +141,10 @@ export async function GET(request: NextRequest) {
     }
     
     // ========================================
-    // OBTENER SOLO SERVIDORES DE USUARIOS APROBADOS (REMOVER HARDCODEADOS)
+    // OBTENER SERVIDORES DE LA TABLA SERVERS (IMPORTADOS + CREADOS)
     // ========================================
-    let userServersQuery = supabase
-      .from('user_servers')
+    let serversQuery = supabase
+      .from('servers')
       .select(`
         id,
         title,
@@ -158,34 +158,43 @@ export async function GET(request: NextRequest) {
         status,
         created_at,
         category_id,
+        legacy_id,
+        ip,
+        ip_address,
+        experience_rate,
+        votes,
+        is_premium,
+        is_approved,
         server_categories(name, slug)
       `)
-      .eq('approved', true)
-      .eq('status', 'online')
+      .or('approved.eq.true,is_approved.eq.true')
+      .in('status', ['online', 'active'])
 
     // Filtrar por categoría si se especifica
     if (categoryId) {
-      userServersQuery = userServersQuery.eq('category_id', categoryId)
+      serversQuery = serversQuery.eq('category_id', categoryId)
     }
 
-    const { data: userServers, error: userServersError } = await userServersQuery
+    const { data: servers, error: serversError } = await serversQuery
     
-    console.log('User servers query result:', { 
-      count: userServers?.length || 0, 
-      error: userServersError 
+    console.log('Servers query result:', { 
+      count: servers?.length || 0, 
+      error: serversError,
+      categoryId: categoryId 
     })
 
     // ========================================
-    // USAR SOLO SERVIDORES DE USUARIOS REALES
+    // USAR SERVIDORES IMPORTADOS Y CREADOS
     // ========================================
-    const allServers = (userServers || []).map(server => ({
+    const allServers = (servers || []).map(server => ({
       ...server,
-      source: 'user_server' as const,
-      ip: '' // user_servers no tiene IP
+      source: server.legacy_id ? 'imported' : 'created',
+      ip: server.ip || server.ip_address || ''
     }));
 
     console.log('Real servers loaded:', {
-      userServers: userServers?.length || 0,
+      imported: allServers.filter(s => s.source === 'imported').length,
+      created: allServers.filter(s => s.source === 'created').length,
       total: allServers.length
     })
 
@@ -208,18 +217,8 @@ export async function GET(request: NextRequest) {
     // PROCESAR SERVIDORES CON VOTOS REALES
     // ========================================
     const serversWithVotes = await Promise.all(allServers.slice(0, limit).map(async server => {
-      // Obtener votos reales usando la función de Supabase
-      const { data: realVotes, error: voteCountError } = await supabase
-        .rpc('get_server_vote_count', {
-          p_server_id: server.id.toString(),
-          p_server_type: 'user_server'
-        })
-
-      if (voteCountError) {
-        console.error('Error obteniendo votos reales para servidor', server.id, ':', voteCountError)
-      }
-
-      const votes = realVotes || 0
+      // Usar votos de la base de datos directamente (ya están en el campo votes)
+      const votes = server.votes || 0
       
       return {
         id: server.id,
